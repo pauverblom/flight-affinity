@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 public class FlightAffinity implements ModInitializer {
 
     public static final String MOD_ID = "flightaffinity";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     @Override
     public void onInitialize() {

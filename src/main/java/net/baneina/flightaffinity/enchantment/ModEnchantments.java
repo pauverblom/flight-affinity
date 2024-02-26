@@ -14,7 +14,7 @@ public class ModEnchantments {
 
     public static Enchantment FLIGHT_AFFINITY = register("flight_affinity",
             new FlightAffinityEnchantment(Enchantment.Rarity.RARE,
-                    EnchantmentTarget.ARMOR_HEAD, new EquipmentSlot[]{EquipmentSlot.HEAD}));
+                    EnchantmentTarget.ARMOR_HEAD, EquipmentSlot.HEAD));
 
     private static Enchantment register(String name, Enchantment enchantment) {
         return Registry.register(Registries.ENCHANTMENT, new Identifier(FlightAffinity.MOD_ID, name), enchantment);
