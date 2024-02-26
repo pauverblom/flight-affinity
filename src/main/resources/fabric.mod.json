@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "flightaffinity",
+  "version": "${version}",
+  "name": "New Enchantment",
+  "description": "Allows you to mine faster while in the air!",
+  "authors": [
+    "Baneina"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+  "license": "MIT",
+  "icon": "assets/flight-affinity/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.baneina.flightaffinity.FlightAffinity"
+    ],
+    "client": [
+      "net.baneina.flightaffinity.FlightAffinityClient"
+    ],
+    "fabric-datagen": [
+      "net.baneina.flightaffinity.FlightAffinityDataGenerator"
+    ]
+  },
+  "mixins": [
+    "flight-affinity.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.6",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
