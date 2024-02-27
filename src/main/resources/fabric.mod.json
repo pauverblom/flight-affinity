@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "flightaffinity",
   "version": "${version}",
-  "name": "New Enchantment",
+  "name": "Flight Affinity",
   "description": "Allows you to mine faster while in the air!",
   "authors": [
     "Baneina"

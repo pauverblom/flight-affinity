@@ -2,7 +2,6 @@ package net.baneina.flightaffinity.enchantment;
 
 import net.baneina.flightaffinity.FlightAffinity;
 import net.minecraft.enchantment.Enchantment;
-
 import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.registry.Registries;
@@ -16,10 +15,11 @@ public class ModEnchantments {
             new FlightAffinityEnchantment(Enchantment.Rarity.RARE,
                     EnchantmentTarget.ARMOR_HEAD, EquipmentSlot.HEAD));
 
+
     private static Enchantment register(String name, Enchantment enchantment) {
         return Registry.register(Registries.ENCHANTMENT, new Identifier(FlightAffinity.MOD_ID, name), enchantment);
     }
     public static void registerModEnchantments() {
-        System.out.println("Registering Enchantments for" + FlightAffinity.MOD_ID);
+        System.out.println("Registering Enchantments for " + FlightAffinity.MOD_ID);
     }
 }
