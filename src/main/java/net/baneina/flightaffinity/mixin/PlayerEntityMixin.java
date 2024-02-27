@@ -15,18 +15,10 @@ import net.baneina.flightaffinity.enchantment.ModEnchantments;
 
 @Mixin(PlayerEntity.class)
 abstract class PlayerEntityMixin extends LivingEntity {
-    @ModifyExpressionValue(method = "getBlockBreakingSpeed", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;isOnGround()Z"))
-    private boolean flightAffinityEnchantmentAndIsOnGround(boolean originalIsOnGround) {
-        if (!originalIsOnGround && EnchantmentHelper.getEquipmentLevel(ModEnchantments.FLIGHT_AFFINITY, this) > 0) {
-            return false; // If player isn't in the air and has flight affinity, treat isOnGround as false
-        }
-        return originalIsOnGround;
-    }
-
     @ModifyReturnValue(method = "getBlockBreakingSpeed", at = @At("RETURN"))
     private float modifyMiningSpeed(float originalSpeed, BlockState block)
     {
-        if (!isOnGround())
+        if (!isOnGround() && EnchantmentHelper.getEquipmentLevel(ModEnchantments.FLIGHT_AFFINITY, this) > 0)
         {
             originalSpeed = originalSpeed * 5;  // Remove mining speed in the air penalty by multiplying penalty times 5
         }
