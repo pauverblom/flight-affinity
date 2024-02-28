@@ -5,8 +5,8 @@ import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
 
 public class FlightAffinityEnchantment extends Enchantment {
-    public FlightAffinityEnchantment(Rarity weight, EnchantmentTarget target, EquipmentSlot... slotTypes) {
-        super(weight, target, slotTypes);
+    public FlightAffinityEnchantment(Enchantment.Rarity weight, EquipmentSlot... slotTypes) {
+        super(weight, EnchantmentTarget.ARMOR_HEAD, slotTypes);
     }
     @Override
     public int getMinPower(int level) {
