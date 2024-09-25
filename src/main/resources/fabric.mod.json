@@ -8,8 +8,8 @@
     "Baneina"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://modrinth.com/mod/flight-affinity",
+    "sources": "https://github.com/pauverblom/flight-affinity"
   },
   "license": "MIT",
   "icon": "assets/flight-affinity/icon.png",
@@ -29,8 +29,8 @@
     "flight-affinity.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.15.6",
-    "minecraft": "~1.20.1",
+    "fabric loader": ">=0.15.6",
+    "minecraft": "~1.20",
     "java": ">=17",
     "fabric-api": "*"
   },
