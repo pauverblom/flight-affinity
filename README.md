@@ -1,5 +1,5 @@
-Simple fabric mod which adds a new enchantment: Flight Affinity.
+Based on the original Aerial Affinity Mod, this mod adds a new enchantment which removes the speed penalty applied while mining while in the air.
 
-Can be used on helmets. It removes the speed penalty applied when mining while on the air.
+This new enchantment is applied on helmets, and it can be obtained by villager trading, through the enchanting table or inside dungeons.
 
 Modrinth Page: https://modrinth.com/mod/flight-affinity
