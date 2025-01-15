@@ -19,9 +19,9 @@ Can Be Applied **On Any Helmet:**
 
 ****Without**** Flight Affinity:
 
-![WIth-Flight-Affinity.gif](https://postimg.cc/zVHnSPDJ)
+[Without-Flight-Affinity-Imgur.gif](https://postimg.cc/Kkz7CJ21)
 
 
 ****With**** Flight Affinity:
 
-![Without-Flight-Affinity-Imgur.gif](https://postimg.cc/K4wTzrPC)
+[WIth-Flight-Affinity.gif](https://postimg.cc/R3vLLvpQ)
