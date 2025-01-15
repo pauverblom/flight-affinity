@@ -19,9 +19,9 @@ Can Be Applied **On Any Helmet:**
 
 ****Without**** Flight Affinity:
 
-![Without Flight Affinity Block Breaking Is Much Harder While On The Air](https://i.imgur.com/GwueLvr.gif)
+![WIth-Flight-Affinity.gif](https://postimg.cc/zVHnSPDJ)
 
 
 ****With**** Flight Affinity:
 
-![Without FLight Affinity Block Breaking Is Much Easier](https://i.imgur.com/6ODFlXD.gif)
+![Without-Flight-Affinity-Imgur.gif](https://postimg.cc/K4wTzrPC)
