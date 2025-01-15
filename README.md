@@ -24,4 +24,4 @@ Can Be Applied **On Any Helmet:**
 
 ****With**** Flight Affinity:
 
-![WIth-Flight-Affinity.gif](https://postimg.cc/R3vLLvpQ)
+[![WIth-Flight-Affinity.gif](https://i.postimg.cc/1zq7PtpT/WIth-Flight-Affinity.gif)](https://postimg.cc/R3vLLvpQ)
