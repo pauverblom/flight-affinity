@@ -5,5 +5,11 @@
   "version": "1.0",
   "depends": {
     "flightaffinity": "*"
+  },
+  "entrypoints": {
+    "main": [
+      "net.baneina.flightaffinity.test.FlightAffinityGameTest1215"
+    ]
   }
 }
+

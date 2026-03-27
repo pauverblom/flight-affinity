@@ -22,14 +22,14 @@ sourceSets {
     test {
         java {
             if (is1215OrNewer) {
-                srcDirs = ['src/test/java', 'src/test/java_1.21.5_plus']
+                srcDirs = ['src/test/java', 'src/test/java_post_1.21.5']
             } else {
                 srcDirs = ['src/test/java', 'src/test/java_pre_1.21.5']
             }
         }
         resources {
             if (is1215OrNewer) {
-                srcDirs = ['src/test/resources', 'src/test/resources_1.21.5_plus']
+                srcDirs = ['src/test/resources', 'src/test/resources_post_1.21.5']
             } else {
                 srcDirs = ['src/test/resources', 'src/test/resources_pre_1.21.5']
             }
