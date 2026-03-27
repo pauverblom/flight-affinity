@@ -24,7 +24,7 @@ abstract class PlayerEntityMixin extends LivingEntity {
         // If player is in the air and has flight affinity, treat as on ground (return true)
         if (trueIsOnGround) return true;
 
-        return this.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT)
+        return this.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT)
                 .getOptional(ModEnchantments.FLIGHT_AFFINITY)
                 .map(entry -> EnchantmentHelper.getEquipmentLevel(entry, this) > 0)
                 .orElse(false);
