@@ -8,7 +8,7 @@
   },
   "entrypoints": {
     "main": [
-      "net.baneina.flightaffinity.test.FlightAffinityGameTest1215"
+      "net.baneina.flightaffinity.test.FlightAffinityGameTest"
     ]
   }
 }

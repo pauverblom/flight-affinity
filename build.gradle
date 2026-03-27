@@ -1,41 +1,11 @@
 plugins {
-    id 'fabric-loom' version '1.15.5'
+    id 'net.fabricmc.fabric-loom' version '1.15.5'
     id 'maven-publish'
     id "com.modrinth.minotaur" version "2.+"
 }
 
 version = "${project.mod_version}+mc${project.minecraft_version}-fabric"
 group = project.maven_group
-
-def mcVersionParts = project.minecraft_version.split('\\.')
-def is1215OrNewer = false
-if (mcVersionParts.length >= 2) {
-    def major = mcVersionParts[0].toInteger()
-    def minor = mcVersionParts[1].toInteger()
-    def patch = mcVersionParts.length >= 3 ? mcVersionParts[2].toInteger() : 0
-    if (major > 1 || (major == 1 && minor > 21) || (major == 1 && minor == 21 && patch >= 5)) {
-        is1215OrNewer = true
-    }
-}
-// Mojang has made some changes to the test environment in 1.21.5, so we need to use different source directories for tests depending on the Minecraft version
-sourceSets {
-    test {
-        java {
-            if (is1215OrNewer) {
-                srcDirs = ['src/test/java', 'src/test/java_post_1.21.5']
-            } else {
-                srcDirs = ['src/test/java', 'src/test/java_pre_1.21.5']
-            }
-        }
-        resources {
-            if (is1215OrNewer) {
-                srcDirs = ['src/test/resources', 'src/test/resources_post_1.21.5']
-            } else {
-                srcDirs = ['src/test/resources', 'src/test/resources_pre_1.21.5']
-            }
-        }
-    }
-}
 
 base {
     archivesName = project.archives_base_name
@@ -71,14 +41,13 @@ loom {
 }
 
 dependencies {
-    // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    // Changed from modImplementation
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
+    // Your testing dependencies are perfectly fine as they are!
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.10.0"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.10.0"
@@ -97,7 +66,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = 25
 }
 
 java {
@@ -106,8 +75,8 @@ java {
     // If you remove this line, sources will not be generated.
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {
@@ -131,18 +100,15 @@ publishing {
 }
 
 modrinth {
-    token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
-    projectId = "flight-affinity" // This can be the project ID or the slug. Either will work!
-    versionNumber = "${project.mod_version}+mc1.21.9-1.21.11" //This is the version of the mod
-    versionName = "Flight Affinity ${project.mod_version} for Fabric 1.21.9-1.21.11"// You don't need to set this manually. Will fail if Modrinth has this version already
-    versionType = "release" // This is the default -- can also be `beta` or `alpha`
-    uploadFile = remapJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.21.9", "1.21.10", "1.21.11"] // Array of supported versions
+    token = System.getenv("MODRINTH_TOKEN")
+    projectId = "flight-affinity"
+    versionNumber = "${project.mod_version}+${project.minecraft_version}"
+    versionName = "Flight Affinity ${project.mod_version} for Fabric ${project.minecraft_version}"
+    versionType = "release"
+    uploadFile = jar // <-- Changed to standard jar
+    gameVersions = ["26.1"]
     changelog = "Restructured the codebase"
-    dependencies { // A special DSL for creating dependencies
-        // scope.type
-        // The scope can be `required`, `optional`, `incompatible`, or `embedded`
-        // The type can either be `project` or `version`
-        required.project "fabric-api" // Creates a new required dependency on Fabric API
+    dependencies {
+        required.project "fabric-api"
     }
 }
