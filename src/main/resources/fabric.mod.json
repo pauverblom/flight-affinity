@@ -30,8 +30,8 @@
     "flight-affinity.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.15.6",
-    "minecraft": ">=1.20.5 <=1.20.6",
+    "fabricloader": ">=0.16.5",
+    "minecraft": ">=1.21 <=1.21.11",
     "java": ">=21",
     "fabric-api": "*"
   }

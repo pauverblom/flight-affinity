@@ -6,6 +6,7 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,6 +22,11 @@ abstract class PlayerEntityMixin extends LivingEntity {
     )
     public boolean shouldTreatAsOnGroundDueToFlightAffinity(boolean trueIsOnGround) {
         // If player is in the air and has flight affinity, treat as on ground (return true)
-        return trueIsOnGround || EnchantmentHelper.getEquipmentLevel(ModEnchantments.FLIGHT_AFFINITY, this) > 0;
+        if (trueIsOnGround) return true;
+
+        return this.getWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT)
+                .getOptional(ModEnchantments.FLIGHT_AFFINITY)
+                .map(entry -> EnchantmentHelper.getEquipmentLevel(entry, this) > 0)
+                .orElse(false);
     }
 }
