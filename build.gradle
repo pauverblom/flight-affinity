@@ -31,7 +31,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 }
 
@@ -80,12 +80,12 @@ publishing {
 modrinth {
     token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId = "flight-affinity" // This can be the project ID or the slug. Either will work!
-    versionNumber = "${project.mod_version}+mc${project.minecraft_version}" //This is the version of the mod
-    versionName = "Flight Affinity ${project.mod_version} for Fabric ${project.minecraft_version}"// You don't need to set this manually. Will fail if Modrinth has this version already
+    versionNumber = "${project.mod_version}+mc1.20-1.20.4" //This is the version of the mod
+    versionName = "Flight Affinity ${project.mod_version} for Fabric 1.20-1.20.4"// You don't need to set this manually. Will fail if Modrinth has this version already
     versionType = "release" // This is the default -- can also be `beta` or `alpha`
     uploadFile = remapJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    //gameVersions = ["1.20"] // Must be an array, even with only one version
-    changelog = "Fixed code and introduced multi-version support"
+    gameVersions = ["1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4"] // Array of supported versions
+    changelog = "Restructured the codebase"
     dependencies { // A special DSL for creating dependencies
         // scope.type
         // The scope can be `required`, `optional`, `incompatible`, or `embedded`
