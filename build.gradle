@@ -44,7 +44,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 17
+    it.options.release = 21
 }
 
 java {
@@ -53,8 +53,8 @@ java {
     // If you remove this line, sources will not be generated.
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {
@@ -80,11 +80,11 @@ publishing {
 modrinth {
     token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId = "flight-affinity" // This can be the project ID or the slug. Either will work!
-    versionNumber = "${project.mod_version}+mc1.20-1.20.4" //This is the version of the mod
-    versionName = "Flight Affinity ${project.mod_version} for Fabric 1.20-1.20.4"// You don't need to set this manually. Will fail if Modrinth has this version already
+    versionNumber = "${project.mod_version}+mc1.20.5-1.20.6" //This is the version of the mod
+    versionName = "Flight Affinity ${project.mod_version} for Fabric 1.20.5-1.20.6"// You don't need to set this manually. Will fail if Modrinth has this version already
     versionType = "release" // This is the default -- can also be `beta` or `alpha`
     uploadFile = remapJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-    gameVersions = ["1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4"] // Array of supported versions
+    gameVersions = ["1.20.5", "1.20.6"] // Array of supported versions
     changelog = "Restructured the codebase"
     dependencies { // A special DSL for creating dependencies
         // scope.type

@@ -11,7 +11,7 @@ import net.minecraft.util.Identifier;
 public class ModEnchantments {
 
     public static Enchantment FLIGHT_AFFINITY = register("flight_affinity",
-            new FlightAffinityEnchantment(Enchantment.Rarity.RARE, EquipmentSlot.HEAD));
+            new FlightAffinityEnchantment());
 
 
     private static Enchantment register(String name, Enchantment enchantment) {
