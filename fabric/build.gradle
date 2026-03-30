@@ -1,0 +1,86 @@
+plugins {
+    id 'multiloader-loader'
+    id 'net.fabricmc.fabric-loom'
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+
+    testImplementation "net.fabricmc:fabric-loader-junit:${fabric_loader_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.10.0"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.10.0"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+loom {
+    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
+    if (aw.exists()) {
+        accessWidenerPath.set(aw)
+    }
+    runs {
+        gametest {
+            server()
+            setConfigName('Fabric GameTest Server')
+            source sourceSets.test
+            vmArg "-Dfabric-api.gametest"
+            vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest-report.xml"
+            runDir('runs/gametest')
+        }
+        client {
+            client()
+            setConfigName('Fabric Client')
+            ideConfigGenerated(true)
+            runDir('runs/client')
+        }
+        clientTesting {
+            client()
+            setConfigName('Fabric Client (Testing)')
+            ideConfigGenerated(true)
+            runDir('runs/client_testing')
+            source sourceSets.test
+            vmArg "-Dfabric-api.gametest"
+        }
+        server {
+            server()
+            setConfigName('Fabric Server')
+            ideConfigGenerated(true)
+            runDir('runs/server')
+        }
+        serverTesting {
+            server()
+            setConfigName('Fabric Server (Testing)')
+            ideConfigGenerated(true)
+            runDir('runs/server_testing')
+            source sourceSets.test
+            vmArg "-Dfabric-api.gametest"
+        }
+    }
+}
+
+// Implement mcgradleconventions loader attribute
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements', 'includeInternal', 'modCompileClasspath'].each { variant ->
+    configurations.named("$variant") {
+        attributes {
+            attribute(loaderAttribute, 'fabric')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant->
+        configurations.named("$variant") {
+            attributes {
+                attribute(loaderAttribute, 'fabric')
+            }
+        }
+    }
+}
+
+tasks.withType(Test).configureEach {
+    failFast = false
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
