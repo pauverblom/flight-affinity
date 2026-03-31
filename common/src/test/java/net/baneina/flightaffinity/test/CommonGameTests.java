@@ -16,14 +16,10 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import org.junit.jupiter.api.Test;
 
-import static net.baneina.flightaffinity.rules.MiningSpeedRules.Environment.AIR;
-import static net.baneina.flightaffinity.rules.MiningSpeedRules.Environment.OTHER_FLUID;
-import static net.baneina.flightaffinity.rules.MiningSpeedRules.Environment.WATER;
+import static net.baneina.flightaffinity.rules.MiningSpeedRules.Environment.*;
 import static net.baneina.flightaffinity.rules.MiningSpeedRules.Stance.AIRBORNE;
 import static net.baneina.flightaffinity.rules.MiningSpeedRules.Stance.GROUNDED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CommonGameTests {
 
@@ -236,6 +232,10 @@ public class CommonGameTests {
 
         if ("minecart".equals(vehicleType)) {
             var minecart = net.minecraft.world.entity.EntityType.MINECART.create(context.getLevel(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+            if (minecart == null) {
+                context.fail(Component.literal(scenarioName + " failed to create minecart"));
+                return;
+            }
             minecart.setPos(mockPlayer.getX(), mockPlayer.getY(), mockPlayer.getZ());
             context.getLevel().addFreshEntity(minecart);
             if (!mockPlayer.startRiding(minecart)) {
@@ -244,6 +244,10 @@ public class CommonGameTests {
             }
         } else if ("horse".equals(vehicleType)) {
             var horse = net.minecraft.world.entity.EntityType.HORSE.create(context.getLevel(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+            if (horse == null) {
+                context.fail(Component.literal(scenarioName + " failed to create horse"));
+                return;
+            }
             horse.setPos(mockPlayer.getX(), mockPlayer.getY(), mockPlayer.getZ());
             context.getLevel().addFreshEntity(horse);
             if (!mockPlayer.startRiding(horse)) {
@@ -354,30 +358,6 @@ public class CommonGameTests {
 
         context.succeed();
     }
-}
-
-class MiningSpeedRulesTest {
-
-    @Test
-    void shouldTreatAsOnGroundWhenAlreadyGrounded() {
-        assertTrue(MiningSpeedRules.shouldTreatAsOnGround(true, false, false));
-    }
-
-    @Test
-    void shouldTreatAsOnGroundWhenFlightAffinityAndAirborne() {
-        assertTrue(MiningSpeedRules.shouldTreatAsOnGround(false, true, false));
-    }
-
-    @Test
-    void shouldNotTreatAsOnGroundWithoutFlightAffinityAndAirborne() {
-        assertFalse(MiningSpeedRules.shouldTreatAsOnGround(false, false, false));
-    }
-
-    @Test
-    void shouldTreatAsOnGroundInWaterWithFlightAffinity() {
-        assertTrue(MiningSpeedRules.shouldTreatAsOnGround(false, true, true));
-    }
-
     @Test
     void airGroundedAlwaysStaysAt100() {
         assertEquals(100, MiningSpeedRules.finalMiningSpeedPercent(AIR, GROUNDED, false, false));

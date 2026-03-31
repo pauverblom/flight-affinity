@@ -13,7 +13,8 @@ neoForge {
     runs {
         configureEach {
             systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
-            ideName = "NeoForge ${it.name.capitalize()}" // Unify the run config names with fabric
+            ideName = "NeoForge ${it.name.capitalize()}"
+            ideFolderName = "NeoForge"
         }
         client {
             client()
@@ -54,7 +55,7 @@ neoForge {
             sourceSet = sourceSets.main
             loadedMods = [ project.neoForge.mods.named(project.mod_id).get() ]
         }
-        gameTestServer {
+        gametest {
             type = "gameTestServer"
             this.file("runs/gametest").createParentDirectories()
             gameDirectory = this.mkdir(this.file("runs/gametest"))
@@ -98,6 +99,40 @@ sourceSets.configureEach {
             attributes {
                 attribute(loaderAttribute, 'neoforge')
             }
+        }
+    }
+}
+
+plugins.apply("com.modrinth.minotaur")
+
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN") // Remember to have MODRINTH_TOKEN set in your environment
+    projectId = mod_id // Make sure your Modrinth project ID is configured
+    versionNumber = project.version
+    versionType = "release"
+    uploadFile = tasks.named("jar")
+    gameVersions = [minecraft_version]
+    loaders = ["neoforge"]
+}
+
+plugins.apply("net.darkhax.curseforgegradle")
+
+tasks.register("publishCurseForge", net.darkhax.curseforgegradle.TaskPublishCurseForge) {
+    apiToken = System.getenv("CURSEFORGE_TOKEN") // Remember to have CURSEFORGE_TOKEN set in your environment
+
+    // El Project ID de CurseForge es un número
+    def projectId = "YOUR_CURSEFORGE_PROJECT_ID"
+
+    // Solo registrar la subida si el ID existe y no es el placeholder
+    if (projectId != "YOUR_CURSEFORGE_PROJECT_ID") {
+        def mainFile = upload(projectId, tasks.named("jar").get().archiveFile)
+        mainFile.changelog = "Release ${project.version}"
+        mainFile.releaseType = "release"
+        mainFile.addGameVersion(minecraft_version)
+        mainFile.addModLoader("NeoForge")
+    } else {
+        doFirst {
+            println "Warning: CurseForge Project ID is not set for NeoForge!"
         }
     }
 }

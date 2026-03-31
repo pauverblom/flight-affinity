@@ -1,3 +1,5 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
 plugins {
     id 'multiloader-loader'
     id 'net.fabricmc.fabric-loom'
@@ -19,9 +21,14 @@ loom {
         accessWidenerPath.set(aw)
     }
     runs {
+        configureEach {
+            ideConfigFolder = 'Fabric'
+            appendProjectPathToConfigName = false
+        }
         gametest {
             server()
             setConfigName('Fabric GameTest Server')
+            ideConfigGenerated(true)
             source sourceSets.test
             vmArg "-Dfabric-api.gametest"
             vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest-report.xml"
@@ -85,5 +92,39 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"
+    }
+}
+
+plugins.apply("com.modrinth.minotaur")
+
+modrinth {
+    token = System.getenv("MODRINTH_TOKEN") // Remember to have MODRINTH_TOKEN set in your environment
+    projectId = mod_id // Make sure your Modrinth project ID is configured
+    versionNumber = project.version
+    versionType = "release"
+    uploadFile = tasks.named("jar")
+    gameVersions = [minecraft_version]
+    loaders = ["fabric", "quilt"]
+}
+
+plugins.apply("net.darkhax.curseforgegradle")
+
+tasks.register("publishCurseForge", TaskPublishCurseForge) {
+    apiToken = System.getenv("CURSEFORGE_TOKEN") // Remember to have CURSEFORGE_TOKEN set in your environment
+
+    // El Project ID de CurseForge es un número
+    def projectId = "YOUR_CURSEFORGE_PROJECT_ID"
+
+    // Solo registrar la subida si el ID existe y no es el placeholder
+    if (projectId != "YOUR_CURSEFORGE_PROJECT_ID") {
+        def mainFile = upload(projectId, tasks.named("jar").get().archiveFile)
+        mainFile.changelog = "Release ${project.version}"
+        mainFile.releaseType = "release"
+        mainFile.addGameVersion(minecraft_version)
+        mainFile.addModLoader("Fabric", "Quilt")
+    } else {
+        doFirst {
+            println "Warning: CurseForge Project ID is not set for Fabric!"
+        }
     }
 }

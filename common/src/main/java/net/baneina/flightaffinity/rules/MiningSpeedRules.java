@@ -35,13 +35,13 @@ public final class MiningSpeedRules {
 
     /**
      * Determines if a player should be treated as on the ground for mining speed purposes.
-     * @param trueIsOnGround true if the player is physically on the ground
+     * @param environment the environment the player is in
+     * @param stance the stance of the player
      * @param hasFlightAffinity true if the player has the Flight Affinity enchantment
-     * @param inWaterLikeFluid true if the player is in a water-like fluid
      * @return true if the player should be treated as on the ground
      */
-    public static boolean shouldTreatAsOnGround(boolean trueIsOnGround, boolean hasFlightAffinity, boolean inWaterLikeFluid) {
-        if (trueIsOnGround) {
+    public static boolean shouldTreatAsOnGround(Environment environment, Stance stance, boolean hasFlightAffinity) {
+        if (stance == Stance.GROUNDED) {
             return true;
         }
         return hasFlightAffinity;
