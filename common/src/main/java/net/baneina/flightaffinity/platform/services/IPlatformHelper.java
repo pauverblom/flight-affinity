@@ -1,5 +1,8 @@
 package net.baneina.flightaffinity.platform.services;
 
+/**
+ * Helper to fetch information about the current platform.
+ */
 public interface IPlatformHelper {
 
     /**

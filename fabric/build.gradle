@@ -77,6 +77,9 @@ sourceSets.configureEach {
     }
 }
 
+sourceSets.test.java.srcDir project(':common').file('src/test/java')
+sourceSets.test.resources.srcDir project(':common').file('src/test/resources')
+
 tasks.withType(Test).configureEach {
     failFast = false
     useJUnitPlatform()

@@ -1,0 +1,10 @@
+{
+    "type": "minecraft:function",
+    "function": "flightaffinity-test:flight_affinity_vehicle_riding_horse_yes_affinity",
+    "environment": "minecraft:default",
+    "structure": "minecraft:empty",
+    "max_ticks": 100,
+    "setup_ticks": 0,
+    "required": true
+}
+

@@ -2,17 +2,16 @@ package net.baneina.flightaffinity;
 
 import net.fabricmc.api.ModInitializer;
 
+/**
+ * Fabric entry point for the Flight Affinity mod.
+ */
 public class FlightAffinity implements ModInitializer {
     
+    /** Default constructor. */
+    public FlightAffinity() {}
+
     @Override
     public void onInitialize() {
-        
-        // This method is invoked by the Fabric mod loader when it is ready
-        // to load your mod. You can access Fabric and Common code in this
-        // project.
-
-        // Use Fabric to bootstrap the Common mod.
-        Constants.LOG.info("Hello Fabric world!");
         FlightAffinityCommon.init();
     }
 }

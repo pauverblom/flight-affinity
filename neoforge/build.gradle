@@ -67,6 +67,9 @@ neoForge {
 
 dependencies {
     testImplementation sourceSets.main.output
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.10.0"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.10.0"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
 configurations {
@@ -77,6 +80,8 @@ configurations {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+sourceSets.test.java.srcDir project(':common').file('src/test/java')
+sourceSets.test.resources.srcDir project(':common').file('src/test/resources')
 
 // Implement mcgradleconventions loader attribute
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)

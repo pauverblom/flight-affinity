@@ -1,19 +1,9 @@
 package net.baneina.flightaffinity.test;
 
-import net.baneina.flightaffinity.enchantment.ModEnchantments;
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.core.Registry;
-import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.entity.EquipmentSlot;
 
 import java.util.function.Consumer;
 
@@ -23,52 +13,179 @@ public class FlightAffinityGameTest implements ModInitializer {
     public void onInitialize() {
         Registry.register(
             net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
-            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_bonus_applied_in_air"),
-            (Consumer<GameTestHelper>) (GameTestHelper context) -> {
-                Player mockPlayer = context.makeMockPlayer(GameType.SURVIVAL);
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_grounded_flight_only"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirGroundedFlightOnly
+        );
 
-                ItemStack helmet = new ItemStack(Items.DIAMOND_HELMET);
-                var enchantmentEntry = context.getLevel().registryAccess()
-                        .lookupOrThrow(Registries.ENCHANTMENT)
-                        .getOrThrow(ModEnchantments.FLIGHT_AFFINITY);
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_grounded_both"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirGroundedBoth
+        );
 
-                helmet.enchant(enchantmentEntry, 1);
-                mockPlayer.setItemSlot(EquipmentSlot.HEAD, helmet);
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_flight_only"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneFlightOnly
+        );
 
-                mockPlayer.setOnGround(false);
-                context.getLevel().addFreshEntity(mockPlayer);
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_both"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneBoth
+        );
 
-                float breakingSpeed = mockPlayer.getDestroySpeed(context.getLevel().getBlockState(context.absolutePos(new BlockPos(0, 0, 0))));
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_grounded_flight_only"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterGroundedFlightOnly
+        );
 
-                if (breakingSpeed < 1.0f) {
-                    context.fail(Component.literal("Flight Affinity no preservó la velocidad minera en el aire!"));
-                }
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_grounded_both"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterGroundedBoth
+        );
 
-                context.succeed();
-            }
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_floating_flight_only"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterFloatingFlightOnly
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_floating_both"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterFloatingBoth
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_grounded_flight_only"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaGroundedFlightOnly
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_grounded_both"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaGroundedBoth
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_floating_flight_only"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaFloatingFlightOnly
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_floating_both"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaFloatingBoth
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneNoAffinity
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_floating_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterFloatingNoAffinity
+        );
+
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_unequip_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneUnequipAffinity
         );
 
         Registry.register(
             net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
             Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_spawns_properly"),
-            (Consumer<GameTestHelper>) (GameTestHelper context) -> {
-                var registry = context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-                var enchantmentEntry = registry.getOrThrow(ModEnchantments.FLIGHT_AFFINITY);
+            (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinitySpawnsProperly
+        );
 
-                if (!enchantmentEntry.is(EnchantmentTags.TRADEABLE)) {
-                    context.fail(Component.literal("Flight Affinity is missing the TRADEABLE tag, villagers won't sell it!"));
-                }
-
-                if (!enchantmentEntry.is(EnchantmentTags.ON_RANDOM_LOOT)) {
-                    context.fail(Component.literal("Flight Affinity is missing the ON_RANDOM_LOOT tag, it won't appear in chests!"));
-                }
-
-                if (!enchantmentEntry.is(EnchantmentTags.IN_ENCHANTING_TABLE)) {
-                    context.fail(Component.literal("Flight Affinity is missing the IN_ENCHANTING_TABLE tag!"));
-                }
-
-                context.succeed();
-            }
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_minecart_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingMinecartNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_minecart_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingMinecartYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_horse_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingHorseNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_horse_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingHorseYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_grounded_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFatigueGroundedNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_grounded_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFatigueGroundedYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_airborne_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFatigueAirborneNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_airborne_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFatigueAirborneYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue3_airborne_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFatigue3AirborneNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue3_airborne_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testFatigue3AirborneYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_grounded_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testWrongToolGroundedNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_grounded_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testWrongToolGroundedYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_airborne_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testWrongToolAirborneNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_airborne_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testWrongToolAirborneYesAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_cobweb_airborne_no_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testCobwebAirborneNoAffinity
+        );
+        Registry.register(
+            net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
+            Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_cobweb_airborne_yes_affinity"),
+            (Consumer<GameTestHelper>) CommonGameTests::testCobwebAirborneYesAffinity
         );
     }
 }
