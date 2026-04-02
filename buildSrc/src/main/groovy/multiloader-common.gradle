@@ -3,6 +3,20 @@ plugins {
     id 'maven-publish'
 }
 
+/**
+ * Reads CHANGELOG.md and returns the body of the section matching the given
+ * version (format: ## [x.y.z]).  Falls back to "Release <version>" if the
+ * file or section is missing.
+ */
+ext.extractChangelog = { String version ->
+    def file = rootProject.file("CHANGELOG.md")
+    if (!file.exists()) return "Release ${version}"
+    def text = file.text
+    def pattern = /(?ms)^## \[${java.util.regex.Pattern.quote(version)}\][^\n]*\n(.*?)(?=^## \[|\z)/
+    def m = text =~ pattern
+    return m ? (m[0][1] as String).trim() : "Release ${version}"
+}
+
 base {
     archivesName = "${mod_id}-${project.name}-${minecraft_version}"
 }

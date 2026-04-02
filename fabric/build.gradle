@@ -98,11 +98,11 @@ tasks.withType(Test).configureEach {
 plugins.apply("com.modrinth.minotaur")
 
 modrinth {
-    // Si estás en pipeline usará env vars, pero localmente tomará del .env si está disponible
-    token = env.fetch("MODRINTH_TOKEN", System.getenv("MODRINTH_TOKEN") ?: "") 
-    projectId = mod_id // Make sure your Modrinth project ID is configured
-    versionNumber = project.version
+    token = env.fetch("MODRINTH_TOKEN", System.getenv("MODRINTH_TOKEN") ?: "")
+    projectId = "flight-affinity"
+    versionNumber = "${project.version}+mc${minecraft_version}"
     versionType = "release"
+    changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
     gameVersions = [minecraft_version]
     loaders = ["fabric", "quilt"]
@@ -111,21 +111,12 @@ modrinth {
 plugins.apply("net.darkhax.curseforgegradle")
 
 tasks.register("publishCurseForge", TaskPublishCurseForge) {
-    apiToken = env.fetch("CURSEFORGE_TOKEN", System.getenv("CURSEFORGE_TOKEN") ?: "") 
+    apiToken = env.fetch("CURSEFORGE_TOKEN", System.getenv("CURSEFORGE_TOKEN") ?: "")
 
-    // El Project ID de CurseForge es un número
-    def projectId = "1180063"
-
-    // Solo registrar la subida si el ID existe y no es el placeholder
-    if (projectId != "1180063") {
-        def mainFile = upload(projectId, tasks.named("jar").get().archiveFile)
-        mainFile.changelog = "Release ${project.version}"
-        mainFile.releaseType = "release"
-        mainFile.addGameVersion(minecraft_version)
-        mainFile.addModLoader("Fabric", "Quilt")
-    } else {
-        doFirst {
-            println "Warning: CurseForge Project ID is not set for Fabric!"
-        }
-    }
+    def mainFile = upload("1180063", tasks.named("jar").get().archiveFile)
+    mainFile.displayName = "${project.version}+mc${minecraft_version}"
+    mainFile.changelog = extractChangelog(project.version)
+    mainFile.releaseType = "release"
+    mainFile.addGameVersion(minecraft_version)
+    mainFile.addModLoader("Fabric", "Quilt")
 }
