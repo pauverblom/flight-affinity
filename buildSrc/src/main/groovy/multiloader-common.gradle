@@ -18,7 +18,7 @@ ext.extractChangelog = { String version ->
 }
 
 base {
-    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+    archivesName = "${mod_id}-${project.name}"
 }
 
 java {
@@ -52,6 +52,7 @@ sourcesJar {
 }
 
 jar {
+    archiveFileName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}.jar"
     from(rootProject.file('LICENSE')) {
         rename { "${it}_${mod_name}" }
     }
@@ -72,9 +73,10 @@ jar {
 processResources {
     var expandProps = [
             'version'                      : version,
-            'group'                        : project.group, //Else we target the task's group.
+            'group'                        : project.group,
             'minecraft_version'            : minecraft_version,
             'minecraft_version_range'      : minecraft_version_range,
+            'minecraft_version_display'    : minecraft_version_display,
             'fabric_version'               : fabric_version,
             'fabric_loader_version'        : fabric_loader_version,
             'mod_name'                     : mod_name,

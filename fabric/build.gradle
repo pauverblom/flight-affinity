@@ -2,12 +2,13 @@ import net.darkhax.curseforgegradle.TaskPublishCurseForge
 
 plugins {
     id 'multiloader-loader'
-    id 'net.fabricmc.fabric-loom'
+    id 'fabric-loom'
 }
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
 
     testImplementation "net.fabricmc:fabric-loader-junit:${fabric_loader_version}"
     testImplementation "org.junit.jupiter:junit-jupiter-api:5.10.0"
@@ -20,6 +21,7 @@ loom {
     if (aw.exists()) {
         accessWidenerPath.set(aw)
     }
+
     runs {
         configureEach {
             ideConfigFolder = 'Fabric'
@@ -65,6 +67,10 @@ loom {
     }
 }
 
+tasks.named('remapJar') {
+    archiveFileName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}.jar"
+}
+
 // Implement mcgradleconventions loader attribute
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
 ['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements', 'includeInternal', 'modCompileClasspath'].each { variant ->
@@ -100,11 +106,12 @@ plugins.apply("com.modrinth.minotaur")
 modrinth {
     token = env.fetch("MODRINTH_TOKEN", System.getenv("MODRINTH_TOKEN") ?: "")
     projectId = "flight-affinity"
-    versionNumber = "${project.version}+mc${minecraft_version}"
+    versionNumber = "${project.version}+mc${minecraft_version_display}"
+    versionName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = [minecraft_version]
+    gameVersions = ["1.21.9", "1.21.10", "1.21.11"]
     loaders = ["fabric", "quilt"]
 }
 
@@ -114,9 +121,11 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     apiToken = env.fetch("CURSEFORGE_TOKEN", System.getenv("CURSEFORGE_TOKEN") ?: "")
 
     def mainFile = upload("1180063", tasks.named("jar").get().archiveFile)
-    mainFile.displayName = "${project.version}+mc${minecraft_version}"
+    mainFile.displayName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion(minecraft_version)
+    mainFile.addGameVersion("1.21.9")
+    mainFile.addGameVersion("1.21.10")
+    mainFile.addGameVersion("1.21.11")
     mainFile.addModLoader("Fabric", "Quilt")
 }
