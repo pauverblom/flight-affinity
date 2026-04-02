@@ -1,6 +1,5 @@
 package net.baneina.flightaffinity.enchantment;
 
-import net.baneina.flightaffinity.Constants;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -15,5 +14,5 @@ public class ModEnchantments {
     private ModEnchantments() {}
 
     /** The ResourceKey for the Flight Affinity enchantment. */
-    public static final ResourceKey<Enchantment> FLIGHT_AFFINITY = ResourceKey.create(Registries.ENCHANTMENT, Identifier.fromNamespaceAndPath(Constants.MOD_ID, "flight_affinity"));
+    public static final ResourceKey<Enchantment> FLIGHT_AFFINITY = ResourceKey.create(Registries.ENCHANTMENT, Identifier.fromNamespaceAndPath("flightaffinity", "flight_affinity"));
 }

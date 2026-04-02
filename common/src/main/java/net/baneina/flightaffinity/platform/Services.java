@@ -1,7 +1,8 @@
 package net.baneina.flightaffinity.platform;
 
-import net.baneina.flightaffinity.Constants;
 import net.baneina.flightaffinity.platform.services.IPlatformHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ServiceLoader;
 
@@ -9,6 +10,8 @@ import java.util.ServiceLoader;
  * Service locator for cross-platform modding implementations.
  */
 public class Services {
+
+    private static final Logger LOG = LoggerFactory.getLogger("FlightAffinity");
 
     /** Private constructor to hide the implicit public one. */
     private Services() {}
@@ -27,7 +30,7 @@ public class Services {
         final T loadedService = ServiceLoader.load(clazz, Services.class.getClassLoader())
                 .findFirst()
                 .orElseThrow(() -> new NullPointerException("Failed to load service for " + clazz.getName()));
-        Constants.LOG.debug("Loaded {} for service {}", loadedService, clazz);
+        LOG.debug("Loaded {} for service {}", loadedService, clazz);
         return loadedService;
     }
 }

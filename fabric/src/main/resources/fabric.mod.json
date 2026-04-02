@@ -13,7 +13,7 @@
     "issues": "https://github.com/pauverblom/flight-affinity/issues"
   },
   "license": "MIT",
-  "icon": "assets/flight-affinity/icon.png",
+  "icon": "assets/flightaffinity/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -21,7 +21,8 @@
     ]
   },
   "mixins": [
-    "flightaffinity.mixins.json"
+    "flightaffinity.mixins.json",
+    "flightaffinity.fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.16.5",

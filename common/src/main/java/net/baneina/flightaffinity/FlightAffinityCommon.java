@@ -1,11 +1,15 @@
 package net.baneina.flightaffinity;
 
 import net.baneina.flightaffinity.platform.Services;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Common entry point for the Flight Affinity mod.
  */
 public class FlightAffinityCommon {
+
+    private static final Logger LOG = LoggerFactory.getLogger("FlightAffinity");
 
     /** Private constructor. */
     private FlightAffinityCommon() {
@@ -16,11 +20,11 @@ public class FlightAffinityCommon {
      */
     public static void init() {
 
-        Constants.LOG.info("Hello from Flight Affinity init on {}! we are currently in a {} environment!", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
+        LOG.info("Hello from Flight Affinity init on {}! we are currently in a {} environment!", Services.PLATFORM.getPlatformName(), Services.PLATFORM.getEnvironmentName());
 
         if (Services.PLATFORM.isModLoaded("flightaffinity")) {
 
-            Constants.LOG.info("Hello from Flight Affinity");
+            LOG.info("Hello from Flight Affinity");
         }
     }
 }
