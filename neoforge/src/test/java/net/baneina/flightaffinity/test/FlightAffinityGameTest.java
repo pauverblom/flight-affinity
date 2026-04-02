@@ -11,154 +11,58 @@ import java.util.function.Consumer;
 @EventBusSubscriber(modid = "flightaffinity")
 public class FlightAffinityGameTest {
 
+    private static final String NS = "flightaffinity-test";
+
     @SubscribeEvent
     public static void onRegister(RegisterEvent event) {
-        if (event.getRegistryKey().equals(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key())) {
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_grounded_flight_only"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirGroundedFlightOnly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_grounded_both"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirGroundedBoth
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_flight_only"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneFlightOnly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_both"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneBoth
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_grounded_flight_only"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterGroundedFlightOnly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_grounded_both"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterGroundedBoth
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_floating_flight_only"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterFloatingFlightOnly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_floating_both"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterFloatingBoth
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_grounded_flight_only"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaGroundedFlightOnly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_grounded_both"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaGroundedBoth
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_floating_flight_only"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaFloatingFlightOnly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_lava_floating_both"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityLavaFloatingBoth
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneNoAffinity
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_water_floating_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityWaterFloatingNoAffinity
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_air_airborne_unequip_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinityAirAirborneUnequipAffinity
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_spawns_properly"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFlightAffinitySpawnsProperly
-            );
-
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_minecart_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingMinecartNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_minecart_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingMinecartYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_horse_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingHorseNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_vehicle_riding_horse_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testVehicleRidingHorseYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_grounded_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFatigueGroundedNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_grounded_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFatigueGroundedYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_airborne_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFatigueAirborneNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue_airborne_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFatigueAirborneYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue3_airborne_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFatigue3AirborneNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_fatigue3_airborne_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testFatigue3AirborneYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_grounded_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testWrongToolGroundedNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_grounded_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testWrongToolGroundedYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_airborne_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testWrongToolAirborneNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_wrong_tool_airborne_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testWrongToolAirborneYesAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_cobweb_airborne_no_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testCobwebAirborneNoAffinity
-            );
-            event.register(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                    Identifier.fromNamespaceAndPath("flightaffinity-test", "flight_affinity_cobweb_airborne_yes_affinity"),
-                    () -> (Consumer<GameTestHelper>) CommonGameTests::testCobwebAirborneYesAffinity
-            );
+        if (!event.getRegistryKey().equals(net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key())) {
+            return;
         }
+
+        // 24-case penalty matrix
+        register(event, "air_grounded_none",    FlightAffinityEnvironmentTests::testAirGroundedNone);
+        register(event, "air_grounded_aqua",    FlightAffinityEnvironmentTests::testAirGroundedAqua);
+        register(event, "air_grounded_flight",  FlightAffinityEnvironmentTests::testAirGroundedFlight);
+        register(event, "air_grounded_both",    FlightAffinityEnvironmentTests::testAirGroundedBoth);
+        register(event, "air_airborne_none",    FlightAffinityEnvironmentTests::testAirAirborneNone);
+        register(event, "air_airborne_aqua",    FlightAffinityEnvironmentTests::testAirAirborneAqua);
+        register(event, "air_airborne_flight",  FlightAffinityEnvironmentTests::testAirAirborneFlight);
+        register(event, "air_airborne_both",    FlightAffinityEnvironmentTests::testAirAirborneBoth);
+        register(event, "water_grounded_none",  FlightAffinityEnvironmentTests::testWaterGroundedNone);
+        register(event, "water_grounded_aqua",  FlightAffinityEnvironmentTests::testWaterGroundedAqua);
+        register(event, "water_grounded_flight",FlightAffinityEnvironmentTests::testWaterGroundedFlight);
+        register(event, "water_grounded_both",  FlightAffinityEnvironmentTests::testWaterGroundedBoth);
+        register(event, "water_airborne_none",  FlightAffinityEnvironmentTests::testWaterAirborneNone);
+        register(event, "water_airborne_aqua",  FlightAffinityEnvironmentTests::testWaterAirborneAqua);
+        register(event, "water_airborne_flight",FlightAffinityEnvironmentTests::testWaterAirborneFlight);
+        register(event, "water_airborne_both",  FlightAffinityEnvironmentTests::testWaterAirborneBoth);
+        register(event, "lava_grounded_none",   FlightAffinityEnvironmentTests::testLavaGroundedNone);
+        register(event, "lava_grounded_aqua",   FlightAffinityEnvironmentTests::testLavaGroundedAqua);
+        register(event, "lava_grounded_flight", FlightAffinityEnvironmentTests::testLavaGroundedFlight);
+        register(event, "lava_grounded_both",   FlightAffinityEnvironmentTests::testLavaGroundedBoth);
+        register(event, "lava_airborne_none",   FlightAffinityEnvironmentTests::testLavaAirborneNone);
+        register(event, "lava_airborne_aqua",   FlightAffinityEnvironmentTests::testLavaAirborneAqua);
+        register(event, "lava_airborne_flight", FlightAffinityEnvironmentTests::testLavaAirborneFlight);
+        register(event, "lava_airborne_both",   FlightAffinityEnvironmentTests::testLavaAirborneBoth);
+
+        // Mechanics
+        register(event, "unequip_affinity", FlightAffinityMechanicsTests::testFlightAffinityAirAirborneUnequipAffinity);
+
+        // Registry
+        register(event, "spawns_properly", FlightAffinityRegistryTests::testFlightAffinitySpawnsProperly);
+
+        // Vehicles
+        register(event, "vehicle_minecart_no", FlightAffinityVehicleTests::testVehicleRidingMinecartNoAffinity);
+        register(event, "vehicle_minecart_yes", FlightAffinityVehicleTests::testVehicleRidingMinecartYesAffinity);
+        register(event, "vehicle_horse_no", FlightAffinityVehicleTests::testVehicleRidingHorseNoAffinity);
+        register(event, "vehicle_horse_yes", FlightAffinityVehicleTests::testVehicleRidingHorseYesAffinity);
+    }
+
+    private static void register(RegisterEvent event, String name, Consumer<GameTestHelper> test) {
+        event.register(
+                net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
+                Identifier.fromNamespaceAndPath(NS, name),
+                () -> test
+        );
     }
 }
