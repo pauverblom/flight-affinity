@@ -98,7 +98,8 @@ tasks.withType(Test).configureEach {
 plugins.apply("com.modrinth.minotaur")
 
 modrinth {
-    token = System.getenv("MODRINTH_TOKEN") // Remember to have MODRINTH_TOKEN set in your environment
+    // Si estás en pipeline usará env vars, pero localmente tomará del .env si está disponible
+    token = env.fetch("MODRINTH_TOKEN", System.getenv("MODRINTH_TOKEN") ?: "") 
     projectId = mod_id // Make sure your Modrinth project ID is configured
     versionNumber = project.version
     versionType = "release"
@@ -110,13 +111,13 @@ modrinth {
 plugins.apply("net.darkhax.curseforgegradle")
 
 tasks.register("publishCurseForge", TaskPublishCurseForge) {
-    apiToken = System.getenv("CURSEFORGE_TOKEN") // Remember to have CURSEFORGE_TOKEN set in your environment
+    apiToken = env.fetch("CURSEFORGE_TOKEN", System.getenv("CURSEFORGE_TOKEN") ?: "") 
 
     // El Project ID de CurseForge es un número
-    def projectId = "YOUR_CURSEFORGE_PROJECT_ID"
+    def projectId = "1180063"
 
     // Solo registrar la subida si el ID existe y no es el placeholder
-    if (projectId != "YOUR_CURSEFORGE_PROJECT_ID") {
+    if (projectId != "1180063") {
         def mainFile = upload(projectId, tasks.named("jar").get().archiveFile)
         mainFile.changelog = "Release ${project.version}"
         mainFile.releaseType = "release"
