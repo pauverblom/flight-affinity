@@ -5,7 +5,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
@@ -104,7 +103,7 @@ public class GameTestScenarioBuilder {
         mockPlayer.teleportTo(spawnPos.getX() + 0.5, spawnPos.getY() + 0.2, spawnPos.getZ() + 0.5);
 
         if ("minecart".equals(vehicleType)) {
-            var minecart = net.minecraft.world.entity.EntityType.MINECART.create(context.getLevel(), MobSpawnType.COMMAND);
+            var minecart = net.minecraft.world.entity.EntityType.MINECART.create(context.getLevel());
             if (minecart == null) {
                 context.fail(scenarioName + " failed to create minecart");
                 return;
@@ -116,7 +115,7 @@ public class GameTestScenarioBuilder {
                 return;
             }
         } else if ("horse".equals(vehicleType)) {
-            var horse = net.minecraft.world.entity.EntityType.HORSE.create(context.getLevel(), MobSpawnType.COMMAND);
+            var horse = net.minecraft.world.entity.EntityType.HORSE.create(context.getLevel());
             if (horse == null) {
                 context.fail(scenarioName + " failed to create horse");
                 return;

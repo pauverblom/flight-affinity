@@ -24,15 +24,17 @@ abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     /*
-     * Two method descriptors are listed because Fabric and NeoForge expose
-     * different overloads of getDestroySpeed.  Only one will exist at runtime,
-     * so require = 0 lets the missing descriptor fail silently while the
-     * present one is still injected.
+     * Three method descriptors are listed because:
+     *   - Fabric + vanilla 1.21.0:  getDestroySpeed(BlockState)F  contains onGround()
+     *   - NeoForge 21.0.x:          getDestroySpeed delegates to getDigSpeed(BlockState,BlockPos)F
+     *   - NeoForge 21.2+ / 1.21.5+: getDestroySpeed(BlockState,BlockPos)F  contains onGround()
+     * require = 0 lets descriptors that don't match the running version fail silently.
      */
     @ModifyExpressionValue(
             method = {
                     "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;)F",
-                    "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F"
+                    "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F",
+                    "getDigSpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F"
             },
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;onGround()Z"),
             require = 0

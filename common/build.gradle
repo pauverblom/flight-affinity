@@ -3,6 +3,18 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+// Detect whether we are building for 1.21.5+ (registry-based tests) or pre-1.21.5 (annotation-based tests)
+def mcVersionParts = minecraft_version.split('\\.')
+def is1215OrNewer = false
+if (mcVersionParts.length >= 2) {
+    def major = mcVersionParts[0].toInteger()
+    def minor = mcVersionParts[1].toInteger()
+    def patch = mcVersionParts.length >= 3 ? mcVersionParts[2].toInteger() : 0
+    if (major > 1 || (major == 1 && minor > 21) || (major == 1 && minor == 21 && patch >= 5)) {
+        is1215OrNewer = true
+    }
+}
+
 neoForge {
     neoFormVersion = neo_form_version
     // Automatically enable AccessTransformers if the file exists
@@ -65,3 +77,9 @@ sourceSets.configureEach {
     }
 }
 tasks.withType(Test).configureEach { failOnNoDiscoveredTests = false }
+
+// Switch between 1.21.5+ (registry-based) and pre-1.21.5 (annotation-based) test sources.
+sourceSets.test.java.srcDirs = is1215OrNewer
+        ? [file('src/test/java')]
+        : [file('src/test/java_pre_1.21.5')]
+

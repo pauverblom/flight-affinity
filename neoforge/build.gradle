@@ -102,7 +102,7 @@ sourceSets.test.java.srcDirs = is1215OrNewer
 if (is1215OrNewer) {
     sourceSets.test.resources.srcDir project(':common').file('src/test/resources')
 } else {
-    sourceSets.test.resources.srcDirs = []
+    sourceSets.test.resources.srcDirs = [file('src/test/resources_pre_1.21.5')]
 }
 
 // Implement mcgradleconventions loader attribute

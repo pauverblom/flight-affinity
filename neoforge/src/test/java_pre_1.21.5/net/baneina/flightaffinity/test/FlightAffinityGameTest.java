@@ -12,7 +12,11 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public class FlightAffinityGameTest {
 
-    private static final String EMPTY = "minecraft:empty";
+    // In NeoForge 21.0.x the template field is a plain path; the namespace is
+    // automatically prepended from @GameTestHolder.  Using "minecraft:empty"
+    // would produce the invalid compound "flightaffinity-test:minecraft:empty".
+    // We therefore declare our own 1×1×1 empty structure under the test namespace.
+    private static final String EMPTY = "empty";
 
     // -- Environment: AIR × GROUNDED ------------------------------------------
 
