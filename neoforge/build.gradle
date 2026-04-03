@@ -5,6 +5,18 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+// Detect whether we are building for 1.21.5+ (registry-based tests) or pre-1.21.5 (annotation-based tests)
+def mcVersionParts = minecraft_version.split('\\.')
+def is1215OrNewer = false
+if (mcVersionParts.length >= 2) {
+    def major = mcVersionParts[0].toInteger()
+    def minor = mcVersionParts[1].toInteger()
+    def patch = mcVersionParts.length >= 3 ? mcVersionParts[2].toInteger() : 0
+    if (major > 1 || (major == 1 && minor > 21) || (major == 1 && minor == 21 && patch >= 5)) {
+        is1215OrNewer = true
+    }
+}
+
 neoForge {
     version = neoforge_version
     // Automatically enable neoforge AccessTransformers if the file exists
@@ -83,8 +95,15 @@ configurations {
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
-sourceSets.test.java.srcDir project(':common').file('src/test/java')
-sourceSets.test.resources.srcDir project(':common').file('src/test/resources')
+sourceSets.test.java.srcDirs = is1215OrNewer
+        ? [file('src/test/java'), project(':common').file('src/test/java')]
+        : [file('src/test/java_pre_1.21.5'), project(':common').file('src/test/java_pre_1.21.5')]
+// For pre-1.21.5, the annotation-based framework does not use test_instance data files.
+if (is1215OrNewer) {
+    sourceSets.test.resources.srcDir project(':common').file('src/test/resources')
+} else {
+    sourceSets.test.resources.srcDirs = []
+}
 
 // Implement mcgradleconventions loader attribute
 def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
@@ -115,7 +134,7 @@ modrinth {
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = ["1.21.9", "1.21.10", "1.21.11"]
+    gameVersions = ["1.21", "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8"]
     loaders = ["neoforge"]
 }
 
@@ -128,8 +147,14 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.displayName = "Flight Affinity ${project.version} for NeoForge ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion("1.21.9")
-    mainFile.addGameVersion("1.21.10")
-    mainFile.addGameVersion("1.21.11")
+    mainFile.addGameVersion("1.21")
+    mainFile.addGameVersion("1.21.1")
+    mainFile.addGameVersion("1.21.2")
+    mainFile.addGameVersion("1.21.3")
+    mainFile.addGameVersion("1.21.4")
+    mainFile.addGameVersion("1.21.5")
+    mainFile.addGameVersion("1.21.6")
+    mainFile.addGameVersion("1.21.7")
+    mainFile.addGameVersion("1.21.8")
     mainFile.addModLoader("NeoForge")
 }
