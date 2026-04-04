@@ -43,3 +43,4 @@ public class FlightAffinityTestConstants {
     public static final float DOUBLE_PENALTY_MIN = 0.039F;
     public static final float DOUBLE_PENALTY_MAX = 0.041F;
 }
+

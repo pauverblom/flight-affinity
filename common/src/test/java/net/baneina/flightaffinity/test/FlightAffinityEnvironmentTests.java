@@ -144,3 +144,4 @@ public class FlightAffinityEnvironmentTests {
                 .expectedSpeed(NO_PENALTY_MIN, NO_PENALTY_MAX).name("lava_airborne_both").run();
     }
 }
+

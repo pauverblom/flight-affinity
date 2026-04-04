@@ -18,7 +18,7 @@ ext.extractChangelog = { String version ->
 }
 
 base {
-    archivesName = "${mod_id}-${project.name}"
+    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
 }
 
 java {
@@ -37,7 +37,7 @@ repositories {
                 url = 'https://repo.spongepowered.org/repository/maven-public'
             }
         }
-        filter { includeGroupAndSubgroups('org.spongepowered') }
+        filter { includeGroupAndSubgroups("org.spongepowered") }
     }
     maven {
         name = 'BlameJared'
@@ -45,15 +45,28 @@ repositories {
     }
 }
 
+// Declare capabilities on the outgoing configurations.
+// Read more about capabilities here: https://docs.gradle.org/current/userguide/component_capabilities.html#sec:declaring-additional-capabilities-for-a-local-component
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
+    configurations."$variant".outgoing {
+        capability("$group:${base.archivesName.get()}:$version")
+        capability("$group:$mod_id-${project.name}-${minecraft_version}:$version")
+        capability("$group:$mod_id:$version")
+    }
+    publishing.publications.configureEach {
+        suppressPomMetadataWarningsFor(variant)
+    }
+}
+
 sourcesJar {
-    from(rootProject.file('LICENSE')) {
+    from(rootProject.file("LICENSE")) {
         rename { "${it}_${mod_name}" }
     }
 }
 
 jar {
     archiveFileName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}.jar"
-    from(rootProject.file('LICENSE')) {
+    from(rootProject.file("LICENSE")) {
         rename { "${it}_${mod_name}" }
     }
 

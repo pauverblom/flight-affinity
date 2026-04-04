@@ -2,20 +2,9 @@ import net.darkhax.curseforgegradle.TaskPublishCurseForge
 
 plugins {
     id 'multiloader-loader'
-    id 'fabric-loom'
+    id 'fabric-loom' version '1.6-SNAPSHOT'
 }
 
-// Detect whether we are building for 1.21.5+ (registry-based tests) or pre-1.21.5 (annotation-based tests)
-def mcVersionParts = minecraft_version.split('\\.')
-def is1215OrNewer = false
-if (mcVersionParts.length >= 2) {
-    def major = mcVersionParts[0].toInteger()
-    def minor = mcVersionParts[1].toInteger()
-    def patch = mcVersionParts.length >= 3 ? mcVersionParts[2].toInteger() : 0
-    if (major > 1 || (major == 1 && minor > 21) || (major == 1 && minor == 21 && patch >= 5)) {
-        is1215OrNewer = true
-    }
-}
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.officialMojangMappings()
@@ -29,52 +18,51 @@ dependencies {
 }
 
 loom {
-    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
+    def aw = project(":common").file("src/main/resources/${mod_id}.accesswidener")
     if (aw.exists()) {
         accessWidenerPath.set(aw)
     }
-
+    mixin {
+        defaultRefmapName.set("${mod_id}.refmap.json")
+    }
     runs {
         configureEach {
-            ideConfigFolder = 'Fabric'
-            appendProjectPathToConfigName = false
+            appendProjectPathToConfigName.set(false)
+        }
+        client {
+            client()
+            setConfigName("Fabric Client")
+            ideConfigGenerated(true)
+            runDir("runs/client")
+        }
+        server {
+            server()
+            setConfigName("Fabric Server")
+            ideConfigGenerated(true)
+            runDir("runs/server")
         }
         gametest {
             server()
-            setConfigName('Fabric GameTest Server')
+            setConfigName("Fabric GameTest Server")
             ideConfigGenerated(true)
             source sourceSets.test
             vmArg "-Dfabric-api.gametest"
             vmArg "-Dfabric-api.gametest.report-file=${project.layout.buildDirectory.get()}/gametest-report.xml"
-            runDir('runs/gametest')
+            runDir("runs/gametest")
         }
-        client {
+        client_testing {
             client()
-            setConfigName('Fabric Client')
+            setConfigName("Fabric Client (Testing)")
             ideConfigGenerated(true)
-            runDir('runs/client')
-        }
-        clientTesting {
-            client()
-            setConfigName('Fabric Client (Testing)')
-            ideConfigGenerated(true)
-            runDir('runs/client_testing')
             source sourceSets.test
-            vmArg "-Dfabric-api.gametest"
+            runDir("runs/client_testing")
         }
-        server {
+        server_testing {
             server()
-            setConfigName('Fabric Server')
+            setConfigName("Fabric Server (Testing)")
             ideConfigGenerated(true)
-            runDir('runs/server')
-        }
-        serverTesting {
-            server()
-            setConfigName('Fabric Server (Testing)')
-            ideConfigGenerated(true)
-            runDir('runs/server_testing')
             source sourceSets.test
-            vmArg "-Dfabric-api.gametest"
+            runDir("runs/server_testing")
         }
     }
 }
@@ -83,37 +71,22 @@ tasks.named('remapJar') {
     archiveFileName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}.jar"
 }
 
-// Implement mcgradleconventions loader attribute
-def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
-['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements', 'includeInternal', 'modCompileClasspath'].each { variant ->
-    configurations.named("$variant") {
-        attributes {
-            attribute(loaderAttribute, 'fabric')
-        }
-    }
-}
-sourceSets.configureEach {
-    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant->
-        configurations.named("$variant") {
-            attributes {
-                attribute(loaderAttribute, 'fabric')
-            }
-        }
-    }
-}
-
-sourceSets.test.java.srcDirs = is1215OrNewer
-        ? [file('src/test/java'), project(':common').file('src/test/java')]
-        : [file('src/test/java_pre_1.21.5'), project(':common').file('src/test/java_pre_1.21.5')]
-sourceSets.test.resources.srcDirs = is1215OrNewer
-        ? [file('src/test/resources')]
-        : [file('src/test/resources_pre_1.21.5')]
+// Use pre-1.21.5 test sources for this 1.20.6 backport
+sourceSets.test.java.srcDirs = [file('src/test/java_pre_1.21.5'), project(':common').file('src/test/java_pre_1.21.5')]
+sourceSets.test.resources.srcDirs = [file('src/test/resources_pre_1.21.5')]
 
 tasks.withType(Test).configureEach {
     failFast = false
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"
+    }
+}
+
+// --sun-misc-unsafe-memory-access=allow is only valid on Java 23+; strip it when running on Java 21.
+tasks.withType(JavaExec).configureEach {
+    doFirst {
+        setJvmArgs(jvmArgs.findAll { !it.contains("sun-misc-unsafe-memory-access") })
     }
 }
 
@@ -127,7 +100,7 @@ modrinth {
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = ["1.21", "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8"]
+    gameVersions = ["1.20.5", "1.20.6"]
     loaders = ["fabric", "quilt"]
 }
 
@@ -140,14 +113,31 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.displayName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion("1.21")
-    mainFile.addGameVersion("1.21.1")
-    mainFile.addGameVersion("1.21.2")
-    mainFile.addGameVersion("1.21.3")
-    mainFile.addGameVersion("1.21.4")
-    mainFile.addGameVersion("1.21.5")
-    mainFile.addGameVersion("1.21.6")
-    mainFile.addGameVersion("1.21.7")
-    mainFile.addGameVersion("1.21.8")
+    mainFile.addGameVersion("1.20.5")
+    mainFile.addGameVersion("1.20.6")
     mainFile.addModLoader("Fabric", "Quilt")
 }
+
+// Loom 1.6 does not support ideConfigFolder. Post-process the generated IntelliJ run
+// configuration XMLs to inject folderName="Fabric" so they appear grouped.
+tasks.matching { it.name == 'ideaSyncTask' }.configureEach {
+    doLast {
+        def runConfigsDir = rootProject.file('.idea/runConfigurations')
+        if (!runConfigsDir.exists()) return
+
+        def fabricConfigNames = ['Fabric_Client', 'Fabric_Server', 'Fabric_GameTest_Server',
+                                 'Fabric_Client__Testing_', 'Fabric_Server__Testing_']
+        runConfigsDir.eachFileMatch(~/.+\.xml/) { File xmlFile ->
+            def baseName = xmlFile.name.replaceFirst(/\.xml$/, '')
+            if (fabricConfigNames.any { baseName.startsWith(it) }) {
+                def text = xmlFile.text
+                if (!text.contains('folderName=')) {
+                    text = text.replace('<configuration default="false"',
+                                        '<configuration default="false" folderName="Fabric"')
+                    xmlFile.text = text
+                }
+            }
+        }
+    }
+}
+

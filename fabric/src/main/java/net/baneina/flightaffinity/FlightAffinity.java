@@ -1,5 +1,6 @@
 package net.baneina.flightaffinity;
 
+import net.baneina.flightaffinity.enchantment.ModEnchantments;
 import net.fabricmc.api.ModInitializer;
 
 /**
@@ -12,6 +13,8 @@ public class FlightAffinity implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        // Register enchantments before the registry is frozen (Fabric mod init fires at the right time).
+        ModEnchantments.register();
         FlightAffinityCommon.init();
     }
 }

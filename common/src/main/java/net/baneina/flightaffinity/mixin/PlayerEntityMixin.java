@@ -6,7 +6,6 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,16 +23,14 @@ abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     /*
-     * Three method descriptors are listed because:
-     *   - Fabric + vanilla 1.21.0:  getDestroySpeed(BlockState)F  contains onGround()
-     *   - NeoForge 21.0.x:          getDestroySpeed delegates to getDigSpeed(BlockState,BlockPos)F
-     *   - NeoForge 21.2+ / 1.21.5+: getDestroySpeed(BlockState,BlockPos)F  contains onGround()
+     * In 1.20.6 Mojang mappings:
+     *   - Vanilla: getDestroySpeed(BlockState)F contains onGround()
+     *   - NeoForge 20.6.x: getDigSpeed(BlockState,BlockPos)F may also contain onGround()
      * require = 0 lets descriptors that don't match the running version fail silently.
      */
     @ModifyExpressionValue(
             method = {
                     "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;)F",
-                    "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F",
                     "getDigSpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F"
             },
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;onGround()Z"),
@@ -45,9 +42,7 @@ abstract class PlayerEntityMixin extends LivingEntity {
 
     @Unique
     private boolean flightAffinity$hasEnchantment() {
-        return this.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
-                .get(ModEnchantments.FLIGHT_AFFINITY)
-                .map(entry -> EnchantmentHelper.getEnchantmentLevel(entry, this) > 0)
-                .orElse(false);
+        if (ModEnchantments.FLIGHT_AFFINITY == null) return false;
+        return EnchantmentHelper.getEnchantmentLevel(ModEnchantments.FLIGHT_AFFINITY, this) > 0;
     }
 }

@@ -7,7 +7,7 @@
     "flightaffinity": "*"
   },
   "entrypoints": {
-    "main": [
+    "fabric-gametest": [
       "net.baneina.flightaffinity.test.FlightAffinityGameTest"
     ]
   }

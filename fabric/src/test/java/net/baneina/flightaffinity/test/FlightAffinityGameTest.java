@@ -1,62 +1,183 @@
 package net.baneina.flightaffinity.test;
 
-import net.fabricmc.api.ModInitializer;
-import net.minecraft.core.Registry;
+import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
+import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.ResourceLocation;
 
-import java.util.function.Consumer;
+/**
+ * Fabric game-test entrypoint for pre-1.21.5 (annotation-based discovery).
+ * Registered via the {@code fabric-gametest} entrypoint in fabric.mod.json.
+ */
+public class FlightAffinityGameTest {
 
-public class FlightAffinityGameTest implements ModInitializer {
+    private static final String EMPTY = FabricGameTest.EMPTY_STRUCTURE;
 
-    private static final String NS = "flightaffinity-test";
+    // -- Environment: AIR × GROUNDED ------------------------------------------
 
-    @Override
-    public void onInitialize() {
-        // 24-case penalty matrix
-        register("air_grounded_none",    FlightAffinityEnvironmentTests::testAirGroundedNone);
-        register("air_grounded_aqua",    FlightAffinityEnvironmentTests::testAirGroundedAqua);
-        register("air_grounded_flight",  FlightAffinityEnvironmentTests::testAirGroundedFlight);
-        register("air_grounded_both",    FlightAffinityEnvironmentTests::testAirGroundedBoth);
-        register("air_airborne_none",    FlightAffinityEnvironmentTests::testAirAirborneNone);
-        register("air_airborne_aqua",    FlightAffinityEnvironmentTests::testAirAirborneAqua);
-        register("air_airborne_flight",  FlightAffinityEnvironmentTests::testAirAirborneFlight);
-        register("air_airborne_both",    FlightAffinityEnvironmentTests::testAirAirborneBoth);
-        register("water_grounded_none",  FlightAffinityEnvironmentTests::testWaterGroundedNone);
-        register("water_grounded_aqua",  FlightAffinityEnvironmentTests::testWaterGroundedAqua);
-        register("water_grounded_flight",FlightAffinityEnvironmentTests::testWaterGroundedFlight);
-        register("water_grounded_both",  FlightAffinityEnvironmentTests::testWaterGroundedBoth);
-        register("water_airborne_none",  FlightAffinityEnvironmentTests::testWaterAirborneNone);
-        register("water_airborne_aqua",  FlightAffinityEnvironmentTests::testWaterAirborneAqua);
-        register("water_airborne_flight",FlightAffinityEnvironmentTests::testWaterAirborneFlight);
-        register("water_airborne_both",  FlightAffinityEnvironmentTests::testWaterAirborneBoth);
-        register("lava_grounded_none",   FlightAffinityEnvironmentTests::testLavaGroundedNone);
-        register("lava_grounded_aqua",   FlightAffinityEnvironmentTests::testLavaGroundedAqua);
-        register("lava_grounded_flight", FlightAffinityEnvironmentTests::testLavaGroundedFlight);
-        register("lava_grounded_both",   FlightAffinityEnvironmentTests::testLavaGroundedBoth);
-        register("lava_airborne_none",   FlightAffinityEnvironmentTests::testLavaAirborneNone);
-        register("lava_airborne_aqua",   FlightAffinityEnvironmentTests::testLavaAirborneAqua);
-        register("lava_airborne_flight", FlightAffinityEnvironmentTests::testLavaAirborneFlight);
-        register("lava_airborne_both",   FlightAffinityEnvironmentTests::testLavaAirborneBoth);
-
-        // Mechanics
-        register("unequip_affinity", FlightAffinityMechanicsTests::testFlightAffinityAirAirborneUnequipAffinity);
-
-        // Registry
-        register("spawns_properly", FlightAffinityRegistryTests::testFlightAffinitySpawnsProperly);
-
-        // Vehicles
-        register("vehicle_minecart_no", FlightAffinityVehicleTests::testVehicleRidingMinecartNoAffinity);
-        register("vehicle_minecart_yes", FlightAffinityVehicleTests::testVehicleRidingMinecartYesAffinity);
-        register("vehicle_horse_no", FlightAffinityVehicleTests::testVehicleRidingHorseNoAffinity);
-        register("vehicle_horse_yes", FlightAffinityVehicleTests::testVehicleRidingHorseYesAffinity);
+    @GameTest(template = EMPTY)
+    public void airGroundedNone(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirGroundedNone(ctx);
     }
 
-    private static void register(String name, Consumer<GameTestHelper> test) {
-        Registry.register(
-                net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
-                ResourceLocation.fromNamespaceAndPath(NS, name),
-                test
-        );
+    @GameTest(template = EMPTY)
+    public void airGroundedAqua(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirGroundedAqua(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void airGroundedFlight(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirGroundedFlight(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void airGroundedBoth(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirGroundedBoth(ctx);
+    }
+
+    // -- Environment: AIR × AIRBORNE ------------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void airAirborneNone(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirAirborneNone(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void airAirborneAqua(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirAirborneAqua(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void airAirborneFlight(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirAirborneFlight(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void airAirborneBoth(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testAirAirborneBoth(ctx);
+    }
+
+    // -- Environment: WATER × GROUNDED ----------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void waterGroundedNone(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterGroundedNone(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void waterGroundedAqua(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterGroundedAqua(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void waterGroundedFlight(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterGroundedFlight(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void waterGroundedBoth(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterGroundedBoth(ctx);
+    }
+
+    // -- Environment: WATER × AIRBORNE ----------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void waterAirborneNone(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterAirborneNone(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void waterAirborneAqua(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterAirborneAqua(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void waterAirborneFlight(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterAirborneFlight(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void waterAirborneBoth(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testWaterAirborneBoth(ctx);
+    }
+
+    // -- Environment: LAVA × GROUNDED -----------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void lavaGroundedNone(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaGroundedNone(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void lavaGroundedAqua(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaGroundedAqua(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void lavaGroundedFlight(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaGroundedFlight(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void lavaGroundedBoth(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaGroundedBoth(ctx);
+    }
+
+    // -- Environment: LAVA × AIRBORNE -----------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void lavaAirborneNone(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaAirborneNone(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void lavaAirborneAqua(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaAirborneAqua(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void lavaAirborneFlight(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaAirborneFlight(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void lavaAirborneBoth(GameTestHelper ctx) {
+        FlightAffinityEnvironmentTests.testLavaAirborneBoth(ctx);
+    }
+
+    // -- Mechanics ------------------------------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void unequipAffinity(GameTestHelper ctx) {
+        FlightAffinityMechanicsTests.testFlightAffinityAirAirborneUnequipAffinity(ctx);
+    }
+
+    // -- Registry -------------------------------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void spawnsProperly(GameTestHelper ctx) {
+        FlightAffinityRegistryTests.testFlightAffinitySpawnsProperly(ctx);
+    }
+
+    // -- Vehicles -------------------------------------------------------------
+
+    @GameTest(template = EMPTY)
+    public void vehicleMinecartNo(GameTestHelper ctx) {
+        FlightAffinityVehicleTests.testVehicleRidingMinecartNoAffinity(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void vehicleMinecartYes(GameTestHelper ctx) {
+        FlightAffinityVehicleTests.testVehicleRidingMinecartYesAffinity(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void vehicleHorseNo(GameTestHelper ctx) {
+        FlightAffinityVehicleTests.testVehicleRidingHorseNoAffinity(ctx);
+    }
+
+    @GameTest(template = EMPTY)
+    public void vehicleHorseYes(GameTestHelper ctx) {
+        FlightAffinityVehicleTests.testVehicleRidingHorseYesAffinity(ctx);
     }
 }
+

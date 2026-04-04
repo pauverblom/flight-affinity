@@ -2,9 +2,7 @@ package net.baneina.flightaffinity.test;
 
 import net.baneina.flightaffinity.enchantment.ModEnchantments;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -16,9 +14,8 @@ public class FlightAffinityMechanicsTests {
 
     public static void testFlightAffinityAirAirborneUnequipAffinity(GameTestHelper context) {
         Player mockPlayer = context.makeMockPlayer(GameType.SURVIVAL);
-        var registry = context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         ItemStack helmet = new ItemStack(HELMET_TYPE);
-        helmet.enchant(registry.getOrThrow(ModEnchantments.FLIGHT_AFFINITY), 1);
+        helmet.enchant(ModEnchantments.FLIGHT_AFFINITY, 1);
         mockPlayer.setItemSlot(EquipmentSlot.HEAD, helmet);
         mockPlayer.setOnGround(false);
 
@@ -32,7 +29,7 @@ public class FlightAffinityMechanicsTests {
         context.runAfterDelay(TICK_DELAY, () -> {
             float before = mockPlayer.getDestroySpeed(context.getLevel().getBlockState(context.absolutePos(targetPos)));
             if (before < NO_PENALTY_MIN || before > NO_PENALTY_MAX) {
-                context.fail(Component.literal("air_airborne_unequip_affinity expected initial speed in [0.99, 1.01] but got " + before));
+                context.fail("air_airborne_unequip_affinity expected initial speed in [0.99, 1.01] but got " + before);
                 return;
             }
 
@@ -42,7 +39,7 @@ public class FlightAffinityMechanicsTests {
                 mockPlayer.setOnGround(false);
                 float after = mockPlayer.getDestroySpeed(context.getLevel().getBlockState(context.absolutePos(targetPos)));
                 if (after < SINGLE_PENALTY_MIN || after > SINGLE_PENALTY_MAX) {
-                    context.fail(Component.literal("air_airborne_unequip_affinity expected post-unequip speed in [0.19, 0.21] but got " + after));
+                    context.fail("air_airborne_unequip_affinity expected post-unequip speed in [0.19, 0.21] but got " + after);
                     return;
                 }
                 context.succeed();

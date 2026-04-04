@@ -17,6 +17,8 @@ public class FlightAffinityCommon {
 
     /**
      * Initializes the common module.
+     * Enchantment registration must be completed by the platform entry point
+     * <em>before</em> this method is called.
      */
     public static void init() {
 

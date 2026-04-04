@@ -111,3 +111,4 @@ class MiningSpeedRulesTest {
         assertEquals(expected, actual, TOLERANCE, "case " + caseId);
     }
 }
+

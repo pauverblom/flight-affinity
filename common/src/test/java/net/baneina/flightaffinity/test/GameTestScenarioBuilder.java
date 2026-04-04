@@ -2,9 +2,7 @@ package net.baneina.flightaffinity.test;
 
 import net.baneina.flightaffinity.enchantment.ModEnchantments;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -71,15 +69,14 @@ public class GameTestScenarioBuilder {
 
     public void run() {
         Player mockPlayer = context.makeMockPlayer(GameType.SURVIVAL);
-        var registry = context.getLevel().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
 
         if (hasFlightAffinity || hasAquaAffinity) {
             ItemStack helmet = new ItemStack(FlightAffinityTestConstants.HELMET_TYPE);
             if (hasFlightAffinity) {
-                helmet.enchant(registry.getOrThrow(ModEnchantments.FLIGHT_AFFINITY), 1);
+                helmet.enchant(ModEnchantments.FLIGHT_AFFINITY, 1);
             }
             if (hasAquaAffinity) {
-                helmet.enchant(registry.getOrThrow(Enchantments.AQUA_AFFINITY), 1);
+                helmet.enchant(Enchantments.AQUA_AFFINITY, 1);
             }
             mockPlayer.setItemSlot(EquipmentSlot.HEAD, helmet);
         }
@@ -104,27 +101,27 @@ public class GameTestScenarioBuilder {
         mockPlayer.teleportTo(spawnPos.getX() + 0.5, spawnPos.getY() + 0.2, spawnPos.getZ() + 0.5);
 
         if ("minecart".equals(vehicleType)) {
-            var minecart = net.minecraft.world.entity.EntityType.MINECART.create(context.getLevel(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+            var minecart = net.minecraft.world.entity.EntityType.MINECART.create(context.getLevel());
             if (minecart == null) {
-                context.fail(Component.literal(scenarioName + " failed to create minecart"));
+                context.fail(scenarioName + " failed to create minecart");
                 return;
             }
             minecart.setPos(mockPlayer.getX(), mockPlayer.getY(), mockPlayer.getZ());
             context.getLevel().addFreshEntity(minecart);
             if (!mockPlayer.startRiding(minecart)) {
-                context.fail(Component.literal(scenarioName + " failed to mount minecart"));
+                context.fail(scenarioName + " failed to mount minecart");
                 return;
             }
         } else if ("horse".equals(vehicleType)) {
-            var horse = net.minecraft.world.entity.EntityType.HORSE.create(context.getLevel(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+            var horse = net.minecraft.world.entity.EntityType.HORSE.create(context.getLevel());
             if (horse == null) {
-                context.fail(Component.literal(scenarioName + " failed to create horse"));
+                context.fail(scenarioName + " failed to create horse");
                 return;
             }
             horse.setPos(mockPlayer.getX(), mockPlayer.getY(), mockPlayer.getZ());
             context.getLevel().addFreshEntity(horse);
             if (!mockPlayer.startRiding(horse)) {
-                context.fail(Component.literal(scenarioName + " failed to mount horse"));
+                context.fail(scenarioName + " failed to mount horse");
                 return;
             }
         }
@@ -142,10 +139,10 @@ public class GameTestScenarioBuilder {
             float breakingSpeed = mockPlayer.getDestroySpeed(context.getLevel().getBlockState(context.absolutePos(targetPos)));
 
             if (breakingSpeed < expectedMin || expectedMax < breakingSpeed) {
-                context.fail(Component.literal(
+                context.fail(
                         scenarioName + " expected speed in [" + expectedMin + ", " + expectedMax + "] but got " + breakingSpeed
                                 + " (onGround=" + mockPlayer.onGround() + ", passenger=" + mockPlayer.isPassenger() + ")"
-                ));
+                );
                 return;
             }
             context.succeed();
