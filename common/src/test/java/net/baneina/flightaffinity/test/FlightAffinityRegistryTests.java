@@ -8,7 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 public class FlightAffinityRegistryTests {
 
     public static void testFlightAffinitySpawnsProperly(GameTestHelper context) {
-        // In 1.20.6, enchantments are code-registered objects. Verify the enchantment
+        // In 1.20.4, enchantments are code-registered objects. Verify the enchantment
         // is present in the registry.
         var key = BuiltInRegistries.ENCHANTMENT.getKey(ModEnchantments.FLIGHT_AFFINITY);
         if (key == null) {

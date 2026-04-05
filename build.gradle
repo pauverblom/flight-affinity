@@ -11,18 +11,6 @@ plugins {
 // Note: idea-ext 1.1.7 does not support folderName or renaming run configurations,
 // so NeoForge runs cannot be grouped into a folder from Gradle alone.
 
-// The NeoForm manifest for 1.20.6 references lwjgl-freetype-3.3.3-natives-macos-patch
-// which was never published to Maven Central or NeoForge Maven.
-// This stub Maven repository provides an empty placeholder JAR so neoFormRecompile
-// can resolve the configuration on macOS without failing.
-allprojects {
-    repositories {
-        maven {
-            name = 'LWJGL stub (macOS natives-patch)'
-            url = uri("${rootProject.projectDir}/gradle/stubs")
-        }
-    }
-}
 
 /**
  * Runs all tests in the correct order:

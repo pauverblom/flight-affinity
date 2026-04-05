@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
 /**
- * Intercepts the {@code player.onGround()} check inside {@code getDestroySpeed}
+ * Intercepts the on-ground check inside {@code getDestroySpeed}
  * so that the airborne mining penalty is skipped when Flight Affinity is active.
  */
 @Mixin(value = Player.class)
@@ -23,9 +23,9 @@ abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     /*
-     * In 1.20.6 Mojang mappings:
-     *   - Vanilla: getDestroySpeed(BlockState)F contains onGround()
-     *   - NeoForge 20.6.x: getDigSpeed(BlockState,BlockPos)F may also contain onGround()
+     * In 1.20.2+ Mojang mappings the getter is onGround()Z.
+     * In 1.20-1.20.1 Mojang mappings the getter is isOnGround()Z.
+     * NeoForge 20.4.x: getDigSpeed(BlockState,BlockPos)F may also contain the call.
      * require = 0 lets descriptors that don't match the running version fail silently.
      */
     @ModifyExpressionValue(
@@ -37,6 +37,19 @@ abstract class PlayerEntityMixin extends LivingEntity {
             require = 0
     )
     public boolean flightAffinity$shouldTreatAsOnGround(boolean originalOnGround) {
+        return originalOnGround || flightAffinity$hasEnchantment();
+    }
+
+    /** Compatibility target for MC 1.20-1.20.1 where the getter is named isOnGround(). */
+    @ModifyExpressionValue(
+            method = {
+                    "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;)F",
+                    "getDigSpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F"
+            },
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;isOnGround()Z"),
+            require = 0
+    )
+    public boolean flightAffinity$shouldTreatAsOnGroundCompat(boolean originalOnGround) {
         return originalOnGround || flightAffinity$hasEnchantment();
     }
 

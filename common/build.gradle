@@ -48,5 +48,5 @@ tasks.withType(Test).configureEach {
     filter { failOnNoMatchingTests = false }
 }
 
-// Use pre-1.21.5 test sources for this 1.20.6 backport
-sourceSets.test.java.srcDirs = [file('src/test/java_pre_1.21.5')]
+// Use standard test source directories for this 1.20.4 backport
+sourceSets.test.java.srcDirs = [file('src/test/java')]

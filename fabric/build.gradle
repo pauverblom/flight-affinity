@@ -71,9 +71,9 @@ tasks.named('remapJar') {
     archiveFileName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}.jar"
 }
 
-// Use pre-1.21.5 test sources for this 1.20.6 backport
-sourceSets.test.java.srcDirs = [file('src/test/java_pre_1.21.5'), project(':common').file('src/test/java_pre_1.21.5')]
-sourceSets.test.resources.srcDirs = [file('src/test/resources_pre_1.21.5')]
+// Use standard test source directories for this 1.20.4 backport
+sourceSets.test.java.srcDirs = [file('src/test/java'), project(':common').file('src/test/java')]
+sourceSets.test.resources.srcDirs = [file('src/test/resources')]
 
 tasks.withType(Test).configureEach {
     failFast = false
@@ -100,7 +100,7 @@ modrinth {
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = ["1.20.5", "1.20.6"]
+    gameVersions = ["1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4"]
     loaders = ["fabric", "quilt"]
 }
 
@@ -113,8 +113,11 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.displayName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion("1.20.5")
-    mainFile.addGameVersion("1.20.6")
+    mainFile.addGameVersion("1.20")
+    mainFile.addGameVersion("1.20.1")
+    mainFile.addGameVersion("1.20.2")
+    mainFile.addGameVersion("1.20.3")
+    mainFile.addGameVersion("1.20.4")
     mainFile.addModLoader("Fabric", "Quilt")
 }
 
