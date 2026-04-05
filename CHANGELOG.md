@@ -3,14 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.3.0] - 2026-04-02
+## [1.3.0] - 2026-04-05
 
 ### Added
-- NeoForge support — Flight Affinity is now a multiloader mod available for both Fabric/Quilt and NeoForge.
+- Forge 1.20.1 support — Flight Affinity is now available for Forge 47.x on Minecraft 1.20.1.
 
 ### Changed
-- Updated to Minecraft 26.1.
-- Simplified internal mixin logic.
+- Simplified internal mixin logic (targets `Player.onGround` field directly on Forge 1.20.1).
 
 ## [1.2.0]
 
@@ -30,3 +29,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - Introduced Flight Affinity for Fabric 1.20.1.
+

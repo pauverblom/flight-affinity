@@ -1,38 +1,225 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
 plugins {
-    // Required for NeoGradle
-    id "org.jetbrains.gradle.plugin.idea-ext" version "1.1.7"
-    id "com.modrinth.minotaur" version "2.8.7" apply false
-    id "net.darkhax.curseforgegradle" version "1.1.25" apply false
-    id "co.uzzu.dotenv.gradle" version "4.0.0"
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
+    id 'org.spongepowered.mixin' version '0.7.+'
+    id 'com.modrinth.minotaur' version '2.8.7'
+    id 'net.darkhax.curseforgegradle' version '1.1.25'
+    id 'co.uzzu.dotenv.gradle' version '4.0.0'
 }
 
-// NeoGradle (userdev) registers run configurations via idea-ext automatically.
-// They appear as "Neoforge: Client", "Neoforge: Server", etc.
-// Note: idea-ext 1.1.7 does not support folderName or renaming run configurations,
-// so NeoForge runs cannot be grouped into a folder from Gradle alone.
+version = mod_version
+group = mod_group_id
 
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 /**
- * Runs all tests in the correct order:
- *   1. :common:test       – fast JUnit logic tests (no Minecraft)
- *   2. :fabric:runGametest  – Fabric headless GameTest server
- *   3. :neoforge:runGameTestServer – NeoForge headless GameTest server
- *
- * Usage: ./gradlew testAll
+ * Reads CHANGELOG.md and returns the body of the section matching the given
+ * version (format: ## [x.y.z]).  Falls back to "Release <version>" if the
+ * file or section is missing.
  */
-tasks.register("testAll") {
-    group = "verification"
-    description = "Runs JUnit logic tests and in-game GameTests for both Fabric and NeoForge."
-    dependsOn(":common:test", ":fabric:runGametest", ":neoforge:runGameTestServer")
+ext.extractChangelog = { String vers ->
+    def file = rootProject.file("CHANGELOG.md")
+    if (!file.exists()) return "Release ${vers}"
+    def text = file.text
+    def pattern = /(?ms)^## \[${java.util.regex.Pattern.quote(vers)}\][^\n]*\n(.*?)(?=^## \[|\z)/
+    def m = text =~ pattern
+    return m ? (m[0][1] as String).trim() : "Release ${vers}"
 }
 
-// Enforce sequential execution so the Minecraft servers don't race each other
-// and logic tests are validated first.
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+            arg "-mixin.config=${mod_id}.mixins.json"
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            // Do NOT set forge.enabledGameTestNamespaces here — that causes
+            // Forge to auto-invoke /test runall inside single-player worlds,
+            // which fails in client mode.  Use runGameTestServer for that.
+        }
+
+        server {
+            args '--nogui'
+        }
+
+        gameTestServer {
+            // Only the headless gametest server needs to discover test namespaces.
+            property 'forge.enabledGameTestNamespaces', mod_id
+        }
+
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
+repositories {
+    maven {
+        name = 'Sponge / Mixin'
+        url = 'https://repo.spongepowered.org/repository/maven-public/'
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // MixinExtras – bundled at runtime by Forge 47.x, but required at compile time.
+    compileOnly(annotationProcessor('io.github.llamalad7:mixinextras-common:0.3.5'))
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // JUnit 5 for offline unit tests
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    failFast = false
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    // Mirror the naming convention from the old multiloader project.
+    archiveFileName = "${mod_id}-${mod_version}+mc${minecraft_version_display}-forge.jar"
+
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_name,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.version,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'Built-On-Minecraft'      : minecraft_version
+        ])
+    }
+
+    from(rootProject.file("LICENSE")) {
+        rename { "${it}_${mod_name}" }
+    }
+
+    finalizedBy 'reobfJar'
+}
+
+// ---------------------------------------------------------------------------
+// Modrinth publishing
+// ---------------------------------------------------------------------------
+modrinth {
+    token = env.fetch("MODRINTH_TOKEN", System.getenv("MODRINTH_TOKEN") ?: "")
+    projectId = "flight-affinity"
+    versionNumber = "${mod_version}+mc${minecraft_version_display}"
+    versionName = "Flight Affinity ${mod_version} for Forge ${minecraft_version_display}"
+    versionType = "release"
+    changelog = extractChangelog(mod_version)
+    uploadFile = tasks.jar
+    gameVersions = ["1.20.1"]
+    loaders = ["forge"]
+}
+tasks.modrinth.dependsOn('reobfJar')
+
+// ---------------------------------------------------------------------------
+// CurseForge publishing
+// ---------------------------------------------------------------------------
+tasks.register("publishCurseForge", TaskPublishCurseForge) {
+    dependsOn('reobfJar')
+    apiToken = env.fetch("CURSEFORGE_TOKEN", System.getenv("CURSEFORGE_TOKEN") ?: "")
+
+    def mainFile = upload("1180063", tasks.named('jar', Jar).flatMap { it.archiveFile })
+    mainFile.displayName = "Flight Affinity ${mod_version} for Forge ${minecraft_version_display}"
+    mainFile.changelog = extractChangelog(mod_version)
+    mainFile.releaseType = "release"
+    mainFile.addGameVersion("1.20.1")
+    mainFile.addModLoader("Forge")
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate test task
+// Runs JUnit logic tests first, then the Forge headless GameTest server.
+// runGameTestServer is created lazily by ForgeGradle, so wire it up only
+// after all projects have been evaluated (safe for both CLI and IDE sync).
+// ---------------------------------------------------------------------------
+tasks.register("testAll") {
+    group = "verification"
+    description = "Runs JUnit unit tests then the in-game Forge GameTest server."
+    dependsOn("test")
+}
+
 gradle.projectsEvaluated {
-    project(":fabric").tasks.named("runGametest") {
-        mustRunAfter(":common:test")
+    def gts = tasks.findByName("runGameTestServer")
+    if (gts != null) {
+        tasks.named("testAll").configure { dependsOn(gts) }
+        gts.mustRunAfter("test")
     }
-    project(":neoforge").tasks.named("runGameTestServer") {
-        mustRunAfter(":fabric:runGametest")
+}
+
+// ---------------------------------------------------------------------------
+// Maven publishing
+// ---------------------------------------------------------------------------
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
     }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }
