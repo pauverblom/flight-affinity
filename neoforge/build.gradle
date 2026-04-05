@@ -5,6 +5,14 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+// Register a no-op idePostSync task for IDE compatibility.
+// Fabric Loom provides this task automatically for the :fabric project,
+// but net.neoforged.moddev does not, causing IntelliJ sync to fail.
+tasks.register('idePostSync') {
+    group = 'ide'
+    description = 'No-op IDE post-sync hook for NeoForge (compatibility with Fabric Loom projects).'
+}
+
 // Detect whether we are building for 1.21.5+ (registry-based tests) or pre-1.21.5 (annotation-based tests)
 def mcVersionParts = minecraft_version.split('\\.')
 def is1215OrNewer = false
