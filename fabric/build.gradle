@@ -71,9 +71,8 @@ tasks.named('remapJar') {
     archiveFileName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}.jar"
 }
 
-// Use pre-1.21.5 test sources for this 1.20.6 backport
-sourceSets.test.java.srcDirs = [file('src/test/java_pre_1.21.5'), project(':common').file('src/test/java_pre_1.21.5')]
-sourceSets.test.resources.srcDirs = [file('src/test/resources_pre_1.21.5')]
+sourceSets.test.java.srcDirs += [project(':common').file('src/test/java')]
+sourceSets.test.resources.srcDirs += [file('src/test/resources'), project(':common').file('src/test/resources')]
 
 tasks.withType(Test).configureEach {
     failFast = false
