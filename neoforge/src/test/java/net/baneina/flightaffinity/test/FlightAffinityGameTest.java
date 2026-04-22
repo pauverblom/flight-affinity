@@ -1,7 +1,7 @@
 package net.baneina.flightaffinity.test;
 
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.registries.RegisterEvent;
@@ -61,7 +61,7 @@ public class FlightAffinityGameTest {
     private static void register(RegisterEvent event, String name, Consumer<GameTestHelper> test) {
         event.register(
                 net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION.key(),
-                Identifier.fromNamespaceAndPath(NS, name),
+                ResourceLocation.fromNamespaceAndPath(NS, name),
                 () -> test
         );
     }

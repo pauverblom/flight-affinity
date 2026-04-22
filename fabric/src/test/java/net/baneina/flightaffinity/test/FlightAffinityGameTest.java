@@ -3,7 +3,7 @@ package net.baneina.flightaffinity.test;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.core.Registry;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.Consumer;
 
@@ -55,7 +55,7 @@ public class FlightAffinityGameTest implements ModInitializer {
     private static void register(String name, Consumer<GameTestHelper> test) {
         Registry.register(
                 net.minecraft.core.registries.BuiltInRegistries.TEST_FUNCTION,
-                Identifier.fromNamespaceAndPath(NS, name),
+                ResourceLocation.fromNamespaceAndPath(NS, name),
                 test
         );
     }
