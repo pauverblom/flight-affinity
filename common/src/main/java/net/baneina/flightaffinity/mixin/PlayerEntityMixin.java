@@ -45,8 +45,8 @@ abstract class PlayerEntityMixin extends LivingEntity {
 
     @Unique
     private boolean flightAffinity$hasEnchantment() {
-        return this.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
-                .get(ModEnchantments.FLIGHT_AFFINITY)
+        return this.level().registryAccess().lookup(Registries.ENCHANTMENT)
+                .flatMap((net.minecraft.core.HolderLookup.RegistryLookup<net.minecraft.world.item.enchantment.Enchantment> registry) -> registry.get(ModEnchantments.FLIGHT_AFFINITY))
                 .map(entry -> EnchantmentHelper.getEnchantmentLevel(entry, this) > 0)
                 .orElse(false);
     }

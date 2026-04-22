@@ -10,7 +10,8 @@ plugins {
 // but net.neoforged.moddev does not, causing IntelliJ sync to fail.
 tasks.register('idePostSync') {
     group = 'ide'
-    description = 'No-op IDE post-sync hook for NeoForge (compatibility with Fabric Loom projects).'
+    description = 'IDE post-sync hook for NeoForge. Generates run files for IntelliJ.'
+    dependsOn tasks.matching { it.name.startsWith('prepare') && it.name.endsWith('Run') }
 }
 
 // Detect whether we are building for 1.21.5+ (registry-based tests) or pre-1.21.5 (annotation-based tests)
@@ -95,11 +96,28 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
+test {
+    useJUnitPlatform()
+    // fabric-loader-junit is pulled onto the classpath by IntelliJ's merged
+    // module model (common test sources are shared with :fabric). Setting this
+    // property tells fabric-loader to skip the duplicate-ASM classpath check.
+    jvmArgs '-Dfabric.classPathGroups=skip'
+}
+
 configurations {
     testCompileClasspath.extendsFrom compileClasspath
     testRuntimeClasspath.extendsFrom runtimeClasspath
     testCompileClasspath.extendsFrom modCompileClasspath
     testRuntimeClasspath.extendsFrom modRuntimeClasspath
+
+    // Exclude fabric-loader-junit from the neoforge test classpath.
+    // IntelliJ merges all module classpaths when running tests, which puts
+    // fabric-loader-junit on the neoforge test classpath. Its
+    // FabricLoaderLauncherSessionListener then fails because it detects
+    // duplicate ASM versions (from common, fabric, and neoforge dependencies).
+    testRuntimeClasspath {
+        exclude group: 'net.fabricmc', module: 'fabric-loader-junit'
+    }
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
