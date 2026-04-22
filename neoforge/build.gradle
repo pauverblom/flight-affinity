@@ -115,7 +115,7 @@ modrinth {
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = ["1.21.9", "1.21.10", "1.21.11"]
+    gameVersions = ["1.21.11"]
     loaders = ["neoforge"]
 }
 
@@ -128,8 +128,13 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.displayName = "Flight Affinity ${project.version} for NeoForge ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion("1.21.9")
-    mainFile.addGameVersion("1.21.10")
     mainFile.addGameVersion("1.21.11")
     mainFile.addModLoader("NeoForge")
+}
+
+tasks.register('idePostSync') {
+    group = 'ide'
+    description = 'No-op IDE post-sync hook for NeoForge (compatibility with Fabric Loom projects).'
+    description = 'IDE post-sync hook for NeoForge. Generates run files for IntelliJ.'
+    dependsOn tasks.matching { it.name.startsWith('prepare') && it.name.endsWith('Run') }
 }

@@ -111,7 +111,7 @@ modrinth {
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = ["1.21.9", "1.21.10", "1.21.11"]
+    gameVersions = ["1.21.11"]
     loaders = ["fabric", "quilt"]
 }
 
@@ -124,8 +124,6 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.displayName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion("1.21.9")
-    mainFile.addGameVersion("1.21.10")
     mainFile.addGameVersion("1.21.11")
     mainFile.addModLoader("Fabric", "Quilt")
 }
