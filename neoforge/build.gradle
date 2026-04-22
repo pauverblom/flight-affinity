@@ -47,6 +47,10 @@ runs {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+jar {
+    archiveFileName = "${mod_id}-${version}+mc${neoforge_minecraft_version_display}-${project.name}.jar"
+}
+
 // Fix duplicate ASM modules in legacy classpath files.
 // Minecraft 1.20.4 ships ASM 9.5 and NeoForge ships 9.8; both end up in the legacy
 // classpath but the ignoreList only covers 9.8. The 9.5 jars leak through as named
