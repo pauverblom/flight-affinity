@@ -138,3 +138,11 @@ tasks.register('idePostSync') {
     description = 'IDE post-sync hook for NeoForge. Generates run files for IntelliJ.'
     dependsOn tasks.matching { it.name.startsWith('prepare') && it.name.endsWith('Run') }
 }
+
+tasks.withType(Test).configureEach {
+    failFast = false
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
