@@ -130,3 +130,18 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.addGameVersion(minecraft_version)
     mainFile.addModLoader("NeoForge")
 }
+
+tasks.register('idePostSync') {
+    group = 'ide'
+    description = 'No-op IDE post-sync hook for NeoForge (compatibility with Fabric Loom projects).'
+    description = 'IDE post-sync hook for NeoForge. Generates run files for IntelliJ.'
+    dependsOn tasks.matching { it.name.startsWith('prepare') && it.name.endsWith('Run') }
+}
+
+tasks.withType(Test).configureEach {
+    failFast = false
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
