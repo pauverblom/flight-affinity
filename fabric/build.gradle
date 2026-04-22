@@ -100,11 +100,12 @@ plugins.apply("com.modrinth.minotaur")
 modrinth {
     token = env.fetch("MODRINTH_TOKEN", System.getenv("MODRINTH_TOKEN") ?: "")
     projectId = "flight-affinity"
-    versionNumber = "${project.version}+mc${minecraft_version}"
+    versionNumber = "${project.version}+mc${minecraft_version_display}"
+    versionName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     versionType = "release"
     changelog = extractChangelog(project.version)
     uploadFile = tasks.named("jar")
-    gameVersions = [minecraft_version]
+    gameVersions = ["26.1", "26.1.1", "26.1.2"]
     loaders = ["fabric", "quilt"]
 }
 
@@ -114,9 +115,11 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     apiToken = env.fetch("CURSEFORGE_TOKEN", System.getenv("CURSEFORGE_TOKEN") ?: "")
 
     def mainFile = upload("1180063", tasks.named("jar").get().archiveFile)
-    mainFile.displayName = "${project.version}+mc${minecraft_version}"
+    mainFile.displayName = "Flight Affinity ${project.version} for Fabric ${minecraft_version_display}"
     mainFile.changelog = extractChangelog(project.version)
     mainFile.releaseType = "release"
-    mainFile.addGameVersion(minecraft_version)
+    mainFile.addGameVersion("26.1")
+    mainFile.addGameVersion("26.1.1")
+    mainFile.addGameVersion("26.1.2")
     mainFile.addModLoader("Fabric", "Quilt")
 }

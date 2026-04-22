@@ -18,7 +18,11 @@ ext.extractChangelog = { String version ->
 }
 
 base {
-    archivesName = "${mod_id}-${project.name}-${minecraft_version}"
+    archivesName = "${mod_id}-${version}+mc${minecraft_version_display}-${project.name}"
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    archiveVersion = ''
 }
 
 java {
