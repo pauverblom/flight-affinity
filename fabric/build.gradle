@@ -127,3 +127,11 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.addGameVersion("1.21.11")
     mainFile.addModLoader("Fabric", "Quilt")
 }
+
+tasks.withType(Test).configureEach {
+    failFast = false
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
