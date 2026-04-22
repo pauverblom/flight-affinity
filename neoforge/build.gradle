@@ -91,3 +91,7 @@ tasks.register("publishCurseForge", TaskPublishCurseForge) {
     mainFile.addGameVersion("1.20.6")
     mainFile.addModLoader("NeoForge")
 }
+
+test {
+    useJUnitPlatform()
+}
