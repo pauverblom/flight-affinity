@@ -49,6 +49,15 @@ jobs:
       - name: GameTests
         run: ./gradlew ":${{ matrix.target }}:runGametest" 2>&1 | tee -a gradle.log
 
+      # A target that registers no tests would otherwise pass silently.
+      - name: Check that every GameTest ran
+        run: |
+          # Every test has a test_instance file (needed from 1.21.5), so their count is the test count.
+          expected=$(ls src/test/resources/data/flightaffinity-test/test_instance | wc -l)
+          passed=$(grep -o -E 'All [0-9]+ required tests passed' versions/${{ matrix.target }}/run/gametest/logs/latest.log | grep -o -E '[0-9]+' | tail -1)
+          echo "GameTests passed: ${passed:-0}, expected at least $expected"
+          [ "${passed:-0}" -ge "$expected" ]
+
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar
         run: ./gradlew ":${{ matrix.target }}:checkReleaseJar" 2>&1 | tee -a gradle.log
