@@ -1,15 +1,22 @@
 /*
  * Shared configuration for every target, applied by build.<loader>.gradle.
- * A target is "<minecraft>-<loader>"; its versions/<target>/gradle.properties provides
- * java_version, mc_targets and the loader dependency versions.
+ * A target is "<minecraft>-<loader>[-<other loader>]"; its versions/<target>/gradle.properties
+ * provides java_version, the loader dependency versions and either mc_targets (a release target)
+ * or smoke_of (a smoke test of another target's jar). See settings.gradle.kts.
  */
 
-ext.loader = project.name.substring(project.name.lastIndexOf('-') + 1)
+def nameParts = project.name.split('-')
+ext.loader = nameParts[1]
+// Loader the game runs on; differs only for "<mc>-forge-neoforge" (Forge 1.20.1 code on NeoForge 1.20.1).
+ext.runtimeLoader = nameParts.length > 2 ? nameParts[2] : loader
 ext.minecraft = stonecutter.current.version as String
 ext.mcAtLeast = { String v -> stonecutter.eval(minecraft, ">=$v".toString()) }
 
+ext.smokeOf = project.findProperty('smoke_of') as String
+ext.isSmoke = smokeOf != null
+
 // Minecraft versions this jar is published for, oldest first.
-ext.mcTargets = (project.property('mc_targets') as String).trim().split(/\s+/) as List<String>
+ext.mcTargets = isSmoke ? [minecraft] : (project.property('mc_targets') as String).trim().split(/\s+/) as List<String>
 ext.mcMin = mcTargets.first()
 ext.mcMax = mcTargets.last()
 ext.mcDisplay = mcMin == mcMax ? mcMin : "$mcMin-$mcMax"
@@ -106,6 +113,30 @@ tasks.withType(ProcessResources).configureEach {
     if (mcAtLeast('1.21')) exclude 'data/*/structures/**'
     if (!mcAtLeast('1.21') || mcAtLeast('1.21.5')) exclude 'data/*/structure/**'
     if (!mcAtLeast('1.21.5')) exclude 'data/*/test_instance/**'
+}
+
+/*
+ * Smoke tests: compile only the GameTests (for this target's Minecraft version) and run them with
+ * the release jar of `smoke_of` installed in the game's mods folder, the way a player installs it.
+ * Forge-on-NeoForge builds from source instead: it is the same Minecraft version, only another loader.
+ */
+if (isSmoke && runtimeLoader == loader) {
+    evaluationDependsOn(":$smokeOf")
+    def release = project(":$smokeOf")
+
+    sourceSets.main {
+        java.exclude '**/*'
+        resources.exclude '**/*'
+    }
+    // The tests refer to the mod's classes; compile them against the release target's development jar.
+    dependencies { testCompileOnly files(release.tasks.named('jar')) }
+
+    def installTestedJar = tasks.register('installTestedJar', Sync) {
+        description = "Installs the ${smokeOf} jar into run/gametest/mods."
+        from(release.releaseJar)
+        into(file('run/gametest/mods'))
+    }
+    tasks.matching { it.name == 'runGametest' }.configureEach { dependsOn installTestedJar }
 }
 
 // There are no JUnit tests: the tests are GameTests, run with runGametest.

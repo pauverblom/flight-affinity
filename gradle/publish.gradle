@@ -24,12 +24,10 @@ publishMods {
     type = STABLE
     dryRun = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
 
-    switch (loader) {
-        case 'fabric': modLoaders.addAll('fabric', 'quilt'); break
-        // NeoForge 1.20.1 is a fork of Forge 47 and loads Forge 1.20.1 mods.
-        case 'forge': modLoaders.addAll('forge', 'neoforge'); break
-        default: modLoaders.add(loader)
-    }
+    modLoaders.add(loader)
+    if (loader == 'fabric') modLoaders.add('quilt')
+    // e.g. NeoForge for the Forge 1.20.1 jar; each has a <mc>-<loader>-<other> smoke test.
+    (project.findProperty('also_runs_on') ?: '').toString().split(' ').findAll().each { modLoaders.add(it) }
 
     modrinth {
         projectId = modrinth_id

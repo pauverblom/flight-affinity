@@ -10,7 +10,9 @@ defaults:
     shell: bash
 
 jobs:
-  # One job per directory in versions/, so adding a target adds it to CI automatically.
+  # One job per directory in versions/, so adding a target adds it to CI automatically. Release
+  # targets build, test and check their jar; smoke targets (smoke_of=...) run the GameTests on another
+  # Minecraft version with a release target's jar installed.
   targets:
     runs-on: ubuntu-latest
     outputs:
@@ -43,7 +45,19 @@ jobs:
           mkdir -p ~/.gradle
           echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
 
+      - name: Target kind
+        id: kind
+        run: |
+          release=$(grep -oP '^smoke_of=\K.*' versions/${{ matrix.target }}/gradle.properties || true)
+          if [ -n "$release" ]; then
+            echo "smoke=true" >> "$GITHUB_OUTPUT"
+            echo "Smoke test of the $release jar" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "smoke=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build
+        if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:build" 2>&1 | tee -a gradle.log
 
       - name: GameTests
@@ -60,9 +74,11 @@ jobs:
 
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar
+        if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:checkReleaseJar" 2>&1 | tee -a gradle.log
 
       - name: Publish dry run
+        if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:publishMods" 2>&1 | tee -a gradle.log
 
       # Puts the lines that explain a failure at the end of the log, where they are easy to find.

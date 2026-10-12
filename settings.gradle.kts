@@ -1,3 +1,5 @@
+import java.util.Properties
+
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -17,20 +19,47 @@ plugins {
 rootProject.name = "flight-affinity"
 
 /*
- * Every directory in versions/ is one build target, named "<minecraft>-<loader>".
- * Its gradle.properties holds the dependency versions and the list of Minecraft
- * versions the resulting jar is published for. Adding a target = adding a folder.
+ * Every directory in versions/ is one target, named "<minecraft>-<loader>". There are two kinds:
+ *  - release targets build a jar; mc_targets lists the Minecraft versions that jar is published for.
+ *  - smoke targets (smoke_of=<release target>) run the GameTests on one other Minecraft version
+ *    with that release target's jar installed, so every published version is actually tested.
+ * "<minecraft>-<loader>-<other loader>" runs a release target's code on another loader
+ * (Forge 1.20.1 on NeoForge 1.20.1).
  */
 val targets = file("versions").listFiles()!!
     .filter { File(it, "gradle.properties").isFile }
     .map { it.name }
     .sorted()
 
+fun props(target: String) = Properties().apply { file("versions/$target/gradle.properties").inputStream().use(::load) }
+val targetProps = targets.associateWith(::props)
+
+// Every published (Minecraft version, loader) pair must have a target that tests it.
+val problems = mutableListOf<String>()
+for ((target, p) in targetProps) {
+    val (minecraft, loader) = target.split('-')
+    val smokeOf = p.getProperty("smoke_of")
+    if (smokeOf == null) {
+        val declared = p.getProperty("mc_targets").trim().split(Regex("\\s+"))
+        val expected = declared.filter { it != minecraft }.map { "$it-$loader" } +
+            (p.getProperty("also_runs_on") ?: "").split(' ').filter { it.isNotBlank() }.map { "$minecraft-$loader-$it" }
+        for (smoke in expected) {
+            if (targetProps[smoke]?.getProperty("smoke_of") != target)
+                problems += "$target publishes for '$smoke' but versions/$smoke/gradle.properties with smoke_of=$target is missing"
+        }
+    } else {
+        val release = targetProps[smokeOf]
+        val declared = release?.getProperty("mc_targets")?.trim()?.split(Regex("\\s+")).orEmpty()
+        if (release == null || (minecraft !in declared))
+            problems += "$target tests $smokeOf, which does not publish for Minecraft $minecraft"
+    }
+}
+check(problems.isEmpty()) { "Untested or mismatched targets:\n  " + problems.joinToString("\n  ") }
+
 stonecutter {
     create(rootProject) {
         for (target in targets) {
-            val minecraft = target.substringBeforeLast('-')
-            val loader = target.substringAfterLast('-')
+            val (minecraft, loader) = target.split('-')
             version(target, minecraft).buildscript("build.$loader.gradle")
         }
         // The version whose code is "uncommented" in src/ when committing.

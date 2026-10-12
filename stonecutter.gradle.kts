@@ -15,7 +15,7 @@ stonecutter active "26.1.2-fabric"
 
 stonecutter parameters {
     // Lets source files use `//? if fabric`, `//? if neoforge`, `//? if forge`.
-    val loader = current.project.substringAfterLast('-')
+    val loader = current.project.split('-')[1]
     constants.match(loader, "fabric", "neoforge", "forge")
 
     // Mojang renamed ResourceLocation to Identifier in 1.21.11. Code is written with

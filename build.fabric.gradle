@@ -32,4 +32,4 @@ loom {
 
 // The jar users install: remapped to intermediary names on obfuscated versions.
 ext.releaseJar = unobfuscated ? tasks.named('jar') : tasks.named('remapJar')
-apply from: rootProject.file('gradle/publish.gradle')
+if (!isSmoke) apply from: rootProject.file('gradle/publish.gradle')

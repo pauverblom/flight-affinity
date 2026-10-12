@@ -23,12 +23,14 @@ neoForge {
     addModdingDependenciesTo sourceSets.test
 
     mods {
-        "${mod_id}" {
-            sourceSet sourceSets.main
-            sourceSet sourceSets.test
+        // A smoke test loads the mod from the release jar in run/gametest/mods instead.
+        if (!isSmoke || runtimeLoader != loader) {
+            "${mod_id}" { sourceSet sourceSets.main }
         }
+        // The GameTests are a separate mod, as on Fabric.
+        flightaffinity_test { sourceSet sourceSets.test }
     }
 }
 
 ext.releaseJar = tasks.named('jar')
-apply from: rootProject.file('gradle/publish.gradle')
+if (!isSmoke) apply from: rootProject.file('gradle/publish.gradle')

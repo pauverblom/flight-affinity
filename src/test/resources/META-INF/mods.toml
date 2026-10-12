@@ -1,0 +1,17 @@
+# The GameTests as their own (test-only) mod for Forge and NeoForge; see src/main/resources/META-INF/mods.toml.
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "${mod_license}"
+
+[[mods]]
+modId = "flightaffinity_test"
+version = "1.0.0"
+displayName = "Flight Affinity Tests"
+description = '''GameTests for Flight Affinity.'''
+
+[[dependencies.flightaffinity_test]]
+modId = "${mod_id}"
+<% if (legacy_toml) { %>mandatory = true<% } else { %>type = "required"<% } %>
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "BOTH"
