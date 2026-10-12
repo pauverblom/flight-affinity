@@ -2,11 +2,11 @@
 
 ## New Enchantment!
 
-Based on the original [Aerial Affinity Mod](https://www.curseforge.com/minecraft/mc-mods/aerial-affinity), this mod adds a new enchantment which removes the speed penalty applied while mining while in the air.
+Based on the original [Aerial Affinity Mod](https://www.curseforge.com/minecraft/mc-mods/aerial-affinity), this mod adds a helmet enchantment that lets you mine at full speed when you are not standing on the ground.
 
-This new enchantment is applied on helmets, and it can be obtained by villager trading, through the enchanting table or inside dungeons.
+In vanilla, mining is 5 times slower while jumping, flying, swimming or riding. Flight Affinity removes that penalty, like Aqua Affinity does for being underwater, and the two stack. You can find it in the enchanting table, from librarian villagers and in loot chests.
 
-On Fabric and Quilt, Flight Affinity requires [Fabric API](https://modrinth.com/mod/fabric-api).
+Install it on both the client and the server. On Fabric and Quilt, Flight Affinity requires [Fabric API](https://modrinth.com/mod/fabric-api).
 
 ## Media
 New Enchanted Book: **Flight Affinity**

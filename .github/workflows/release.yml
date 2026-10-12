@@ -21,6 +21,10 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+# Read-only by default; only the publish job, which creates the GitHub release, can write.
+permissions:
+  contents: read
+
 defaults:
   run:
     shell: bash

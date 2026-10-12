@@ -7,7 +7,10 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 //? if >=1.20.5 {
 import net.minecraft.world.level.GameType;
@@ -20,7 +23,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.EnchantmentTags;
-import net.minecraft.world.item.enchantment.Enchantment;
 //?}
 //? if >=1.21.2 {
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -69,6 +71,14 @@ public final class TestCompat {
         *///?}
     }
 
+    static Item item(String path) {
+        //? if >=1.21.2 {
+        return BuiltInRegistries.ITEM.getValue(id("minecraft", path));
+        //?} else {
+        /*return BuiltInRegistries.ITEM.get(id("minecraft", path));
+        *///?}
+    }
+
     static <T extends Entity> T create(GameTestHelper helper, EntityType<T> type) {
         //? if >=1.21.2 {
         return type.create(helper.getLevel(), EntitySpawnReason.COMMAND);
@@ -96,6 +106,39 @@ public final class TestCompat {
         *///?}
     }
     //?}
+
+    /**
+     * The enchantment's numbers and the items it applies to are the same on every version (the
+     * 1.21+ enchantment file and FlightAffinityEnchantment must agree).
+     */
+    static void enchantmentDefinition(GameTestHelper helper) {
+        //? if >=1.21 {
+        Enchantment enchantment = enchantment(mockPlayer(helper), ModEnchantments.FLIGHT_AFFINITY).value();
+        //?} else {
+        /*Enchantment enchantment = ModEnchantments.flightAffinity.get();
+        *///?}
+        //? if >=1.20.5 {
+        int weight = enchantment.getWeight();
+        int anvilCost = enchantment.getAnvilCost();
+        //?} else {
+        /*// The anvil cost follows from the rarity before 1.20.5: 4 for RARE, whose weight is 2.
+        int weight = enchantment.getRarity().getWeight();
+        int anvilCost = enchantment.getRarity() == Enchantment.Rarity.RARE ? 4 : -1;
+        *///?}
+        String actual = "max level " + enchantment.getMaxLevel() + ", weight " + weight + ", cost "
+                + enchantment.getMinCost(1) + "-" + enchantment.getMaxCost(1) + ", anvil cost " + anvilCost;
+        String expected = "max level 1, weight 2, cost 15-45, anvil cost 4";
+        if (!actual.equals(expected)) { fail(helper, "expected " + expected + ", got " + actual); return; }
+
+        for (String helmet : new String[]{"leather_helmet", "iron_helmet", "diamond_helmet", "netherite_helmet", "turtle_helmet"}) {
+            Item item = item(helmet);
+            if (item == Items.AIR || !enchantment.canEnchant(new ItemStack(item))) { fail(helper, "cannot be put on " + helmet); return; }
+        }
+        for (String other : new String[]{"diamond_chestplate", "diamond_boots", "diamond_pickaxe", "carved_pumpkin"}) {
+            if (enchantment.canEnchant(new ItemStack(item(other)))) { fail(helper, "can be put on " + other); return; }
+        }
+        helper.succeed();
+    }
 
     /** The enchantment exists and can be found in the enchanting table, on loot and from villagers. */
     static void enchantmentIsObtainable(GameTestHelper helper) {

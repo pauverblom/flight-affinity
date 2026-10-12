@@ -12,6 +12,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.workflow == 'build' }}
 
+# Read-only token: CI only reads the repository (artifacts use their own token).
+permissions:
+  contents: read
+
 defaults:
   run:
     shell: bash

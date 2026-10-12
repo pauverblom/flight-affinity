@@ -49,6 +49,7 @@ public final class FlightAffinityTests {
 
         ALL.put("unequip_affinity", MiningScenario::unequipRemovesBonus);
         ALL.put("spawns_properly", TestCompat::enchantmentIsObtainable);
+        ALL.put("enchantment_definition", TestCompat::enchantmentDefinition);
     }
 
     private FlightAffinityTests() {}
