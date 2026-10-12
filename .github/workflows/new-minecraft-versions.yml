@@ -10,7 +10,8 @@ on:
   schedule:
     - cron: '23 7 * * 1'
   workflow_dispatch:
-  # Changes to the check itself: only list what is new (no tests, branch or issues).
+  # Changes to the check itself: rehearse the release of 26.3 (removed from the working tree, then
+  # found, added to the 26.2 jars and tested), without pushing a branch or opening issues.
   push:
     paths:
       - .github/scripts/new_minecraft_versions.py
@@ -19,6 +20,10 @@ on:
 concurrency:
   group: new-minecraft-versions
   cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
 
 permissions:
   contents: write
@@ -44,7 +49,11 @@ jobs:
           echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
 
       - name: Check
+        if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
-          MODE: ${{ github.event_name == 'push' && 'plan' || 'check' }}
-        run: python3 .github/scripts/new_minecraft_versions.py "$MODE" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python3 .github/scripts/new_minecraft_versions.py check | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Rehearse
+        if: github.event_name == 'push'
+        run: python3 .github/scripts/new_minecraft_versions.py try --forget 26.3 | tee -a "$GITHUB_STEP_SUMMARY"

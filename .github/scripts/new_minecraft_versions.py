@@ -12,7 +12,11 @@ that loader's mc_targets, it:
      one issue per Minecraft version, assigned to the repository owner (GitHub emails assignees).
 
 Usage: new_minecraft_versions.py check   (needs GH_TOKEN, GITHUB_REPOSITORY, GITHUB_REPOSITORY_OWNER)
+       new_minecraft_versions.py try     (adds and tests like check, prints the issue text instead)
        new_minecraft_versions.py plan    (only prints what is new; no changes, no tests)
+Option --forget <minecraft version>: first remove that version from the working tree (its release
+targets, smoke targets and mc_targets entries), to rehearse its release. Used by the workflow when
+the check itself changes.
 """
 import hashlib
 import io
@@ -190,9 +194,16 @@ def gh(*args):
     return subprocess.run(['gh', *args], cwd=ROOT, check=True, capture_output=True, text=True).stdout
 
 
-def report(minecraft, entries, branch_pushed):
-    repo = os.environ['GITHUB_REPOSITORY']
-    default = json.loads(gh('repo', 'view', repo, '--json', 'defaultBranchRef'))['defaultBranchRef']['name']
+def forget(minecraft):
+    for name, props in targets().items():
+        directory = VERSIONS / name
+        if name.split('-')[0] == minecraft:
+            subprocess.run(['rm', '-r', str(directory)], check=True)
+        elif 'mc_targets' in props and minecraft in props['mc_targets'].split():
+            set_prop(directory / 'gradle.properties', 'mc_targets', ' '.join(v for v in props['mc_targets'].split() if v != minecraft))
+
+
+def issue_body(minecraft, entries, repo, default, branch_pushed):
     lines = [f'Minecraft **{minecraft}** is out and no jar covers it yet.', '']
     for e in entries:
         name = 'Fabric' if e['loader'] == 'fabric' else 'NeoForge'
@@ -209,7 +220,13 @@ def report(minecraft, entries, branch_pushed):
                       f'[Open a pull request](https://github.com/{repo}/compare/{default}...{BRANCH}?expand=1), '
                       'then run the release workflow after merging: only the jars with a new Minecraft range are uploaded.']
     lines += ['', 'Close this issue to stop the weekly updates for this version.']
-    body = '\n'.join(lines)
+    return '\n'.join(lines)
+
+
+def report(minecraft, entries, branch_pushed):
+    repo = os.environ['GITHUB_REPOSITORY']
+    default = json.loads(gh('repo', 'view', repo, '--json', 'defaultBranchRef'))['defaultBranchRef']['name']
+    body = issue_body(minecraft, entries, repo, default, branch_pushed)
     status = hashlib.sha256(json.dumps([[e['loader'], e['missing'], e.get('passed')] for e in entries]).encode()).hexdigest()[:12]
     body += f'\n\n<!-- status:{status} -->'
     title = f'Minecraft {minecraft}: add support'
@@ -230,14 +247,17 @@ def report(minecraft, entries, branch_pushed):
 
 
 def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else 'plan'
+    args = sys.argv[1:]
+    mode = args[0] if args else 'plan'
+    if '--forget' in args:
+        forget(args[args.index('--forget') + 1])
     entries = plan()
     if not entries:
         print('Every Minecraft release is covered.')
         return
     for e in entries:
         print(f'{e["minecraft"]} {e["loader"]}: ' + (e['missing'] or f'builds {e["builds"]}, extend {e["release_target"]}'))
-    if mode != 'check':
+    if mode not in ('check', 'try'):
         return
 
     testable = [e for e in entries if not e['missing']]
@@ -247,6 +267,14 @@ def main():
         print(f'Testing {e["smoke_target"]}...', flush=True)
         e['passed'], e['log'] = test(e)
         print('  passed' if e['passed'] else '  failed\n' + e['log'], flush=True)
+
+    if mode == 'try':
+        for minecraft in sorted({e['minecraft'] for e in entries}, key=version_key):
+            of_version = [e for e in entries if e['minecraft'] == minecraft]
+            print(f'\n--- Issue "Minecraft {minecraft}: add support" would say:\n')
+            print(issue_body(minecraft, of_version, os.environ.get('GITHUB_REPOSITORY', 'owner/repo'), 'main',
+                             any(e.get('passed') for e in of_version)))
+        sys.exit(0 if all(e.get('passed') for e in testable) else 1)
 
     # Keep only the changes that passed.
     git('checkout', '--', 'versions')
