@@ -1,0 +1,51 @@
+# Temporary: upstream versions and installed-server layouts for the production tests.
+name: probe
+on:
+  push:
+    paths: ['.github/workflows/probe.yml']
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: NeoForge
+        run: |
+          curl -sS https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml | grep -o '<version>[^<]*' | sed 's/<version>//' > nf.txt
+          for p in 20.2 20.3 20.4 20.5 20.6 21.0 21.1 21.2 21.3 21.4 21.5 21.6 21.7 21.8 21.9 21.10 21.11 26.1.0 26.1.1 26.1.2 26.2.0 26.3.0; do
+            all=$(grep -E "^${p//./\\.}\.[0-9]+(-beta)?$" nf.txt | sort -V)
+            echo "$p first=$(echo "$all" | head -1) firststable=$(echo "$all" | grep -v beta | head -1) last=$(echo "$all" | tail -1) count=$(echo "$all" | grep -c .)"
+          done
+          echo "neoforged forge 1.20.1:"; curl -sS https://maven.neoforged.net/releases/net/neoforged/forge/maven-metadata.xml | grep -o '<version>[^<]*' | sed 's/<version>//' | sort -V | sed -n '1p;$p'
+          echo "minecraftforge 1.20.1:"; curl -sS https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml | grep -o '<version>1\.20\.1-[^<]*' | sed 's/<version>//' | sort -V | awk -F- '{print $2}' | awk -F. '{print $1"."$2}' | uniq -c
+          curl -sS https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml | grep -o '<version>1\.20\.1-47\.1\.[0-9]*<' | sed 's/<version>//;s/<//' | sort -V | head -3
+      - name: Fabric
+        run: |
+          curl -sS https://meta.fabricmc.net/v2/versions/installer | jq -r '.[0].version' | sed 's/^/installer /'
+          curl -sS https://meta.fabricmc.net/v2/versions/loader | jq -r '.[].version' | sort -V | grep -E '^0\.(15|16|17|18|19)\.' | tr '\n' ' '; echo
+          for v in 0.83.0+1.20 0.92.12+1.20.1 0.91.6+1.20.2 0.91.1+1.20.3 0.97.3+1.20.4 0.97.8+1.20.5 0.100.8+1.20.6 0.102.0+1.21 0.116.17+1.21.1 0.106.1+1.21.2 0.114.1+1.21.3 0.119.4+1.21.4 0.128.2+1.21.5 0.128.2+1.21.6 0.129.0+1.21.7 0.136.1+1.21.8 0.134.1+1.21.9 0.138.4+1.21.10 0.141.6+1.21.11 0.145.1+26.1 0.145.4+26.1.1 0.155.3+26.1.2 0.161.0+26.2 0.162.0+26.3; do
+            curl -sSfL -o fa.jar "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/$v/fabric-api-$v.jar" || { echo "$v MISSING"; continue; }
+            echo "$v loader $(unzip -p fa.jar fabric.mod.json | jq -c '.depends.fabricloader')"
+          done
+      - name: Quilt
+        run: |
+          curl -sS https://maven.quiltmc.org/repository/release/org/quiltmc/quilt-loader/maven-metadata.xml | grep -o '<version>[^<]*' | sed 's/<version>//' | grep -v -E 'beta|pre|rc' | sort -V | tail -3
+          iv=$(curl -sS https://maven.quiltmc.org/repository/release/org/quiltmc/quilt-installer/maven-metadata.xml | grep -o '<release>[^<]*' | sed 's/<release>//'); echo "installer $iv"
+          curl -sSfL -o qi.jar "https://maven.quiltmc.org/repository/release/org/quiltmc/quilt-installer/$iv/quilt-installer-$iv.jar"
+          java -jar qi.jar help || true
+          curl -sS https://meta.quiltmc.org/v3/versions/game | jq -r '.[].version' | grep -E '^(1\.20|1\.21|26)' | tr '\n' ' '; echo
+          for mc in 1.20.1 1.21.1 1.21.8 1.21.11 26.1.2; do echo "== quilt $mc"; java -jar qi.jar install server $mc --download-server --install-dir=q$mc 2>&1 | tail -3; ls q$mc 2>/dev/null; done
+  installers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - run: |
+          for v in 21.8.54 21.11.45 26.1.2.116; do
+            echo "=== neoforge $v"
+            curl -sSfL -o i.jar "https://maven.neoforged.net/releases/net/neoforged/neoforge/$v/neoforge-$v-installer.jar"
+            java -jar i.jar --installServer s$v > /dev/null 2>&1; echo "exit $?"
+            ls s$v; cat s$v/run.sh 2>/dev/null | grep -v '^#'
+            f=$(find s$v -name unix_args.txt | head -1); echo "args: $f"; [ -n "$f" ] && cat "$f" | tr ' ' '\n' | grep -v '^-p$' | head -30
+          done
+          echo "=== forge"
+          curl -sSfL -o f.jar "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.26/forge-1.20.1-47.4.26-installer.jar"
+          java -jar f.jar --installServer sf > /dev/null 2>&1; echo "exit $?"; ls sf; find sf -name unix_args.txt
