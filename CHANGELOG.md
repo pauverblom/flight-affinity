@@ -9,8 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Builds for Minecraft 26.2 and 26.3.
 
 ### Changed
-- Fewer files to choose from: one file covers Minecraft 1.21-1.21.11 and one 26.1-26.3 on Fabric and
-  Quilt, and one 1.21-1.21.10 and one 1.21.11-26.3 on NeoForge.
+- Fewer files to choose from: on Fabric and Quilt one file covers Minecraft 1.21-1.21.8, one
+  1.21.9-1.21.11 and one 26.1-26.3; on NeoForge one covers 1.21-1.21.10 and one 1.21.11-26.3.
 - Minimum loader versions are now the oldest ones the mod is tested on: Fabric Loader 0.16.10 on
   Minecraft 1.20-1.20.4 and 0.15.10 on 1.20.5-1.20.6 (older ones could not load the 1.20.5-1.20.6
   version), Forge 47.1.0, and for NeoForge the first stable build for the oldest Minecraft version

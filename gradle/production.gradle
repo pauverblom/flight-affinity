@@ -5,8 +5,8 @@
  *  - runProductionBoot: the release jar alone (plus Fabric API on Fabric and Quilt) must start, and
  *    the enchantment must exist: the console command `enchant @a <enchantment>` only gets as far as
  *    "No entity was found" (there are no players) if the enchantment is registered.
- *  - runProductionGametest: the release jar plus the GameTests (packaged as a mod by the release
- *    target, see productionTestJar) on a GameTest server. Not available on NeoForge 1.21.5-1.21.8,
+ *  - runProductionGametest: the release jar plus the GameTests (packaged as a mod for this Minecraft
+ *    version, see testMod below) on a GameTest server. Not available on NeoForge 1.21.5-1.21.8,
  *    which can only start a GameTest server in development.
  *  - productionTest: both.
  *
@@ -90,6 +90,28 @@ dependencies {
 def gameTestMods = configurations.fabricApiModules.incoming.artifactView {
     componentFilter { it instanceof ModuleComponentIdentifier && it.module == 'fabric-gametest-api-v1' }
 }.files
+
+/*
+ * The GameTests as a mod, compiled for this target's Minecraft version (a jar covers several, and the
+ * tests use Minecraft APIs that differ between them): this target's own; for a target without a
+ * development environment, that of the <mc>-<loader> target of the same Minecraft version (Quilt uses
+ * <mc>-fabric's); failing that (NeoForge 1.20.2, 1.20.3, 1.20.5), the release target's.
+ */
+def testMod
+if (hasProperty('productionTestJar')) {
+    testMod = files(productionTestJar)
+} else {
+    def sameVersion = "${mc}-${nameParts[1]}".toString()
+    def sameVersionFile = rootProject.file("versions/$sameVersion/gradle.properties")
+    def sameVersionProps = new Properties()
+    if (sameVersion != project.name && sameVersionFile.isFile()) sameVersionFile.withInputStream { sameVersionProps.load(it) }
+    if (sameVersionProps.getProperty('java_version') != null && sameVersionProps.getProperty('production_server') != 'true') {
+        evaluationDependsOn(":$sameVersion")
+        testMod = files(project(":$sameVersion").productionTestJar)
+    } else {
+        testMod = releaseTargetJars(releaseName, 'testmod')
+    }
+}
 
 def serverDir = file('run/production')
 def serverJava = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(project.java_version as int) }
@@ -208,7 +230,7 @@ if (gameTestsSupported) {
         group = 'verification'
         description = "Runs the GameTests with the $releaseName jar on an installed $serverLoader server."
         dependsOn installServer
-        def mods = files(releaseTargetJars(releaseName, 'release'), releaseTargetJars(releaseName, 'testmod'), configurations.productionMods, gameTestMods)
+        def mods = files(releaseTargetJars(releaseName, 'release'), testMod, configurations.productionMods, gameTestMods)
         inputs.files(mods)
         workingDir serverDir
         // A GameTest server whose tests never start keeps running; fail instead.

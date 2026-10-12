@@ -48,7 +48,7 @@ code stops working on the next version:
 
 | Loader | Jars (Minecraft versions) | Why they are separate |
 |---|---|---|
-| Fabric, Quilt | 1.20-1.20.4, 1.20.5-1.20.6, 1.21-1.21.11, 26.1-26.3 | 1.20.5 changed the `Enchantment` constructor; 1.21 made enchantments data-driven; from 26.1 Minecraft is unobfuscated, so jars use Mojang's names instead of intermediary ones |
+| Fabric, Quilt | 1.20-1.20.4, 1.20.5-1.20.6, 1.21-1.21.8, 1.21.9-1.21.11, 26.1-26.3 | 1.20.5 changed the `Enchantment` constructor; 1.21 made enchantments data-driven; 1.21.9 changed the intermediary name of `Entity.level()`, which the mod calls; from 26.1 Minecraft is unobfuscated, so jars use Mojang's names instead of intermediary ones |
 | NeoForge | 1.20.2-1.20.4, 1.20.5-1.20.6, 1.21-1.21.10, 1.21.11-26.3 | the same first two; NeoForge runs on Mojang's names, so Mojang's rename of `ResourceLocation` to `Identifier` in 1.21.11 needs another jar |
 | Forge | 1.20.1 (also runs on NeoForge 1.20.1) | Forge is only built for 1.20.1 |
 
@@ -96,7 +96,7 @@ accepts (`fabric_loader_min`, `neoforge_min`, `forge_min`; the development GameT
 
 - start it with only the release jar (plus Fabric API on Fabric/Quilt) and check, with a console command,
   that the enchantment is registered;
-- run the GameTests, packaged as a mod, on a GameTest server. NeoForge 1.21.5-1.21.8 can only start a
+- run the GameTests, packaged as a mod compiled for the server's Minecraft version, on a GameTest server. NeoForge 1.21.5-1.21.8 can only start a
   GameTest server in development, so those versions get the start-up check only.
 
 This catches what a development environment hides: wrong metadata, a jar that was not remapped, a missing
