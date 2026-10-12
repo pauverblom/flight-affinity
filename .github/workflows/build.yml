@@ -77,6 +77,9 @@ jobs:
             echo "::group::Game log errors"
             grep -n -E "ERROR|FATAL|Exception|Caused by|failed|Failed|passed|tests" "$log" | grep -v -E "^[0-9]+:\s+at " | head -120 || true
             echo "::endgroup::"
+            echo "::group::First stack trace"
+            grep -n -m1 -A40 -E "Exception|Error:" "$log" || true
+            echo "::endgroup::"
           fi
 
       - uses: actions/upload-artifact@v4
