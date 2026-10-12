@@ -37,8 +37,6 @@ mixin {
 
 dependencies {
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    compileOnly "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
-    annotationProcessor "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
 }
 
 tasks.named('jar', Jar) {

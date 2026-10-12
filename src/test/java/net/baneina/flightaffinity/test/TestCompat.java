@@ -1,6 +1,8 @@
 package net.baneina.flightaffinity.test;
 
+import net.baneina.flightaffinity.FlightAffinity;
 import net.baneina.flightaffinity.enchantment.ModEnchantments;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -16,10 +18,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.item.enchantment.Enchantment;
-//?} else {
-/*import net.baneina.flightaffinity.FlightAffinity;
-import net.minecraft.core.registries.BuiltInRegistries;
-*///?}
+//?}
 //? if >=1.21.2 {
 import net.minecraft.world.entity.EntitySpawnReason;
 //?}
@@ -44,6 +43,15 @@ final class TestCompat {
         return helper.makeMockPlayer(GameType.SURVIVAL);
         //?} else {
         /*return helper.makeMockPlayer();
+        *///?}
+    }
+
+    // Looked up by id: 26.2 removed constants such as EntityType.MINECART.
+    static EntityType<?> entityType(String path) {
+        //? if >=1.21.2 {
+        return BuiltInRegistries.ENTITY_TYPE.getValue(FlightAffinity.id("minecraft", path));
+        //?} else {
+        /*return BuiltInRegistries.ENTITY_TYPE.get(FlightAffinity.id("minecraft", path));
         *///?}
     }
 

@@ -5,6 +5,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -90,6 +91,8 @@ public final class MiningScenario {
             TestCompat.fail(helper, name + ": could not create " + vehicle);
             return false;
         }
+        // An untamed horse's AI throws its rider off at random, which made the horse tests flaky.
+        if (mount instanceof Mob mob) mob.setNoAi(true);
         mount.setPos(player.getX(), player.getY(), player.getZ());
         helper.getLevel().addFreshEntity(mount);
         if (!player.startRiding(mount)) {
@@ -100,6 +103,10 @@ public final class MiningScenario {
     }
 
     private void check(Player player) {
+        if (vehicle != null && !player.isPassenger()) {
+            TestCompat.fail(helper, name + ": the player is no longer riding " + vehicle);
+            return;
+        }
         float expected = expectedSpeed();
         float actual = speed(helper, player);
         if (Math.abs(actual - expected) > expected * TOLERANCE) {

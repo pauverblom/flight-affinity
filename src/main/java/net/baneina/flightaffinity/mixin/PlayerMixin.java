@@ -1,6 +1,5 @@
 package net.baneina.flightaffinity.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.baneina.flightaffinity.enchantment.ModEnchantments;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,6 +9,11 @@ import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+//? if forge {
+/*import org.spongepowered.asm.mixin.injection.Redirect;
+*///?} else {
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+//?}
 //? if >=1.21 {
 import net.minecraft.core.registries.Registries;
 //?} else {
@@ -26,10 +30,22 @@ abstract class PlayerMixin extends LivingEntity {
         super(type, level);
     }
 
-    // Forge and NeoForge move the check from vanilla's getDestroySpeed(BlockState) into their own
+    // NeoForge moves the check from vanilla's getDestroySpeed(BlockState) into its own
     // position-aware overload: getDigSpeed until NeoForge 21.1, getDestroySpeed from 21.2.
     // require = 1 makes the game refuse to start if nothing matches, so a moved check shows up
     // as a crash in CI instead of an enchantment that silently does nothing.
+    //? if forge {
+    /*// Forge 1.20.1 does not ship MixinExtras (an unknown injector annotation is silently
+    // ignored), so it uses a plain Redirect of the same call.
+    @Redirect(
+            method = "getDigSpeed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)F",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;onGround()Z"),
+            require = 1
+    )
+    private boolean flightAffinity$ignoreAirbornePenalty(Player player) {
+        return player.onGround() || flightAffinity$hasEnchantment();
+    }
+    *///?} else {
     @ModifyExpressionValue(
             method = {
                     //? if fabric {
@@ -45,6 +61,7 @@ abstract class PlayerMixin extends LivingEntity {
     private boolean flightAffinity$ignoreAirbornePenalty(boolean grounded) {
         return grounded || flightAffinity$hasEnchantment();
     }
+    //?}
 
     @Unique
     private boolean flightAffinity$hasEnchantment() {

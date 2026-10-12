@@ -1,7 +1,6 @@
 package net.baneina.flightaffinity.test;
 
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.world.entity.EntityType;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,13 +39,13 @@ public final class FlightAffinityTests {
 
         // Riding counts as airborne in vanilla; Flight Affinity removes that penalty too.
         ALL.put("vehicle_minecart_no", helper -> new MiningScenario(helper, "vehicle_minecart_no")
-                .riding(EntityType.MINECART).run());
+                .riding(TestCompat.entityType("minecart")).run());
         ALL.put("vehicle_minecart_yes", helper -> new MiningScenario(helper, "vehicle_minecart_yes")
-                .riding(EntityType.MINECART).flightAffinity(true).run());
+                .riding(TestCompat.entityType("minecart")).flightAffinity(true).run());
         ALL.put("vehicle_horse_no", helper -> new MiningScenario(helper, "vehicle_horse_no")
-                .riding(EntityType.HORSE).run());
+                .riding(TestCompat.entityType("horse")).run());
         ALL.put("vehicle_horse_yes", helper -> new MiningScenario(helper, "vehicle_horse_yes")
-                .riding(EntityType.HORSE).flightAffinity(true).run());
+                .riding(TestCompat.entityType("horse")).flightAffinity(true).run());
 
         ALL.put("unequip_affinity", MiningScenario::unequipRemovesBonus);
         ALL.put("spawns_properly", TestCompat::enchantmentIsObtainable);
