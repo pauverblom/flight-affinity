@@ -1,0 +1,21 @@
+/*
+ * The jars of a release target, for its smoke targets: releaseTargetJars(<release target>, <kind>),
+ * kind being 'release' (the jar players install), 'testmod' (the GameTests as a mod, for production
+ * servers) or 'dev' (the development jar the GameTests compile against).
+ *
+ * Built from the release target here, unless -Pprebuilt_jars=<dir> is given: then they are taken from
+ * <dir>/<kind>/, where CI puts the jars that the release target's job built and tested (exportJars).
+ * Smoke tests then test the exact files that get published, without building them again.
+ */
+def prebuiltJars = project.findProperty('prebuilt_jars') as String
+
+ext.releaseTargetJars = { String name, String kind ->
+    if (prebuiltJars != null) {
+        def dir = new File(prebuiltJars, kind)
+        if (!dir.isDirectory()) throw new GradleException("-Pprebuilt_jars: $dir does not exist")
+        return files(fileTree(dir))
+    }
+    if (name != project.name) evaluationDependsOn(":$name")
+    def release = project(":$name")
+    return files([release: release.releaseJar, testmod: release.productionTestJar, dev: release.tasks.named('jar')][kind])
+}

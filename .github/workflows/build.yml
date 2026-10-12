@@ -4,27 +4,37 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-  # The release workflow runs every test before publishing anything.
+  # The release workflow runs every test before publishing anything, and publishes the jars built here.
   workflow_call:
+
+# A newer push replaces the CI run of an older one on the same branch (not when called by a release).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.workflow == 'build' }}
 
 defaults:
   run:
     shell: bash
 
+# Two stages, both with one job per directory in versions/ (adding a target adds it to CI):
+#  - release targets build their jar once, test it and upload it (artifact jars-<target>);
+#  - smoke targets (smoke_of=...) download that jar and run the GameTests on another Minecraft version
+#    or loader with it, so they test the exact files that get published.
 jobs:
-  # One job per directory in versions/, so adding a target adds it to CI automatically. Release
-  # targets build, test and check their jar; smoke targets (smoke_of=...) run the GameTests on another
-  # Minecraft version with a release target's jar installed.
   targets:
     runs-on: ubuntu-latest
     outputs:
-      list: ${{ steps.list.outputs.list }}
+      release: ${{ steps.list.outputs.release }}
+      smoke: ${{ steps.list.outputs.smoke }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: list
-        run: echo "list=$(ls versions | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+        run: |
+          list() { for d in versions/*/; do t=$(basename "$d"); if grep -q '^smoke_of=' "$d/gradle.properties"; then [ "$1" = smoke ] && echo "$t"; else [ "$1" = release ] && echo "$t"; fi; done | jq -R . | jq -cs .; }
+          echo "release=$(list release)" >> "$GITHUB_OUTPUT"
+          echo "smoke=$(list smoke)" >> "$GITHUB_OUTPUT"
 
-  test:
+  release:
     needs: targets
     name: ${{ matrix.target }}
     runs-on: ubuntu-latest
@@ -32,54 +42,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJson(needs.targets.outputs.list) }}
+        target: ${{ fromJson(needs.targets.outputs.release) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: |
-            17
-            21
-            25
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Use the installed JDKs as toolchains
-        run: |
-          mkdir -p ~/.gradle
-          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
-
-      - name: Target kind
-        id: kind
-        run: |
-          props=versions/${{ matrix.target }}/gradle.properties
-          release=$(grep -oP '^smoke_of=\K.*' "$props" || true)
-          if [ -n "$release" ]; then
-            echo "smoke=true" >> "$GITHUB_OUTPUT"
-            echo "Smoke test of the $release jar" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "smoke=false" >> "$GITHUB_OUTPUT"
-          fi
-          # production_server=true: no development environment, only the production tests.
-          if grep -q '^production_server=true' "$props"; then echo "dev=false" >> "$GITHUB_OUTPUT"; else echo "dev=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
 
       - name: Build
-        if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:build" 2>&1 | tee -a gradle.log
 
       # The GameTests in the development environment, on the newest loader version.
       - name: GameTests
-        if: steps.kind.outputs.dev == 'true'
         run: ./gradlew ":${{ matrix.target }}:runGametest" 2>&1 | tee -a gradle.log
 
       # A target that registers no tests would otherwise pass silently.
       - name: Check that every GameTest ran
-        if: steps.kind.outputs.dev == 'true'
-        run: |
-          # Every test has a test_instance file (needed from 1.21.5), so their count is the test count.
-          expected=$(ls src/test/resources/data/flightaffinity-test/test_instance | wc -l)
-          passed=$(grep -o -E 'All [0-9]+ required tests passed' versions/${{ matrix.target }}/run/gametest/logs/latest.log | grep -o -E '[0-9]+' | tail -1)
-          echo "GameTests passed: ${passed:-0}, expected at least $expected"
-          [ "${passed:-0}" -ge "$expected" ]
+        run: .github/scripts/check-gametests.sh "${{ matrix.target }}"
 
       # The release jar on a server installed by the loader's installer, on the oldest loader version
       # the jar accepts: it must start and register the enchantment, and pass the GameTests where the
@@ -89,52 +66,84 @@ jobs:
 
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar
-        if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:checkReleaseJar" 2>&1 | tee -a gradle.log
 
       - name: Publish dry run
-        if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:publishMods" ":${{ matrix.target }}:releaseInfo" 2>&1 | tee -a gradle.log
 
-      # Puts the lines that explain a failure at the end of the log, where they are easy to find.
+      # The jars for the smoke test jobs and the release workflow.
+      - name: Collect jars
+        run: ./gradlew ":${{ matrix.target }}:exportJars" 2>&1 | tee -a gradle.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: jars-${{ matrix.target }}
+          path: versions/${{ matrix.target }}/build/ci-jars/
+          if-no-files-found: error
+
       - name: Summarize failure
         if: failure()
-        run: |
-          echo "::group::Gradle errors"
-          grep -n -A3 -E "error:|What went wrong|FAILED|Exception|Caused by" gradle.log | grep -v -E "^[0-9]+-\s+at |^[0-9]+:\s+at " | head -120 || true
-          echo "::endgroup::"
-          dir=versions/${{ matrix.target }}/run
-          for log in $dir/gametest/logs/latest.log $dir/production/logs/latest.log; do
-            [ -f "$log" ] || continue
-            echo "::group::Errors in $log"
-            grep -n -E "ERROR|FATAL|Exception|Caused by|failed|Failed|passed|tests" "$log" | grep -v -E "^[0-9]+:\s+at " | head -120 || true
-            echo "::endgroup::"
-            echo "::group::Start of $log"
-            # Skips the GameTest progress bars, which can fill the log.
-            grep -v -E "GameTestServer.*\]: \[[ +x_]*\]$" "$log" | head -n 150
-            echo "::endgroup::"
-            echo "::group::End of $log"
-            grep -v -E "GameTestServer.*\]: \[[ +x_]*\]$" "$log" | tail -n 60
-            echo "::endgroup::"
-            echo "::group::First stack trace in $log"
-            grep -v -E "server.properties|eula.txt" "$log" | grep -n -m1 -A60 -E "Exception|Error:" || true
-            echo "::endgroup::"
-          done
-          debug=$dir/production/logs/debug.log
-          if [ -f "$debug" ]; then
-            echo "::group::Command exceptions in $debug"
-            grep -n -A25 "Command exception" "$debug" | head -80 || true
-            echo "::endgroup::"
-          fi
-
-      - uses: actions/upload-artifact@v4
+        run: .github/scripts/summarize-failure.sh "${{ matrix.target }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: ${{ matrix.target }}
+          name: logs-${{ matrix.target }}
           path: |
-            versions/${{ matrix.target }}/build/libs/
             versions/${{ matrix.target }}/run/gametest/logs/
             versions/${{ matrix.target }}/run/production/logs/
             versions/${{ matrix.target }}/run/production/*.log
             versions/${{ matrix.target }}/build/gametest-report.xml
+          if-no-files-found: ignore
+
+  smoke:
+    needs: [targets, release]
+    # Runs even if some release jobs failed; the smoke tests of those jars fail when their jars are missing.
+    if: ${{ !cancelled() && needs.targets.result == 'success' }}
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.targets.outputs.smoke) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+
+      - name: Target kind
+        id: kind
+        run: |
+          props=versions/${{ matrix.target }}/gradle.properties
+          release=$(grep -oP '^smoke_of=\K.*' "$props")
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Smoke test of the $release jar" >> "$GITHUB_STEP_SUMMARY"
+          # production_server=true: no development environment, only the production tests.
+          if grep -q '^production_server=true' "$props"; then echo "dev=false" >> "$GITHUB_OUTPUT"; else echo "dev=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: jars-${{ steps.kind.outputs.release }}
+          path: ${{ runner.temp }}/jars
+
+      - name: GameTests
+        if: steps.kind.outputs.dev == 'true'
+        run: ./gradlew ":${{ matrix.target }}:runGametest" "-Pprebuilt_jars=${{ runner.temp }}/jars" 2>&1 | tee -a gradle.log
+
+      - name: Check that every GameTest ran
+        if: steps.kind.outputs.dev == 'true'
+        run: .github/scripts/check-gametests.sh "${{ matrix.target }}"
+
+      - name: Production tests
+        run: ./gradlew ":${{ matrix.target }}:productionTest" "-Pprebuilt_jars=${{ runner.temp }}/jars" 2>&1 | tee -a gradle.log
+
+      - name: Summarize failure
+        if: failure()
+        run: .github/scripts/summarize-failure.sh "${{ matrix.target }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: logs-${{ matrix.target }}
+          path: |
+            versions/${{ matrix.target }}/run/gametest/logs/
+            versions/${{ matrix.target }}/run/production/logs/
+            versions/${{ matrix.target }}/run/production/*.log
           if-no-files-found: ignore

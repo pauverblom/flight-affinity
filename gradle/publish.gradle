@@ -21,6 +21,10 @@ def modrinthToken = providers.environmentVariable('MODRINTH_TOKEN')
 def curseforgeToken = providers.environmentVariable('CURSEFORGE_TOKEN')
 def dryRunOnly = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
 def versionNumber = "${project.version}-${loader}".toString()
+// The release workflow publishes the jar CI built and tested (-Pprebuilt_jars, see gradle/release-jars.gradle).
+def publishedJar = project.hasProperty('prebuilt_jars')
+        ? layout.file(provider { releaseTargetJars(project.name, 'release').singleFile })
+        : releaseJar.flatMap { it.archiveFile }
 def loadersPublished = [loader] + (project.findProperty('also_runs_on') ?: '').toString().split(' ').findAll()
 
 // Whether this exact jar (version number) is already on Modrinth. Asked once, when first needed.
@@ -41,7 +45,7 @@ def modrinthHasVersion = {
 }.memoize()
 
 publishMods {
-    file = releaseJar.flatMap { it.archiveFile }
+    file = publishedJar
     // Modrinth/CurseForge version numbers also name the loader, so each upload's number is unique.
     version = versionNumber
     displayName = "${mod_name} ${mod_version} for ${loadersPublished.collect { loaderNames[it] }.join('/')} ${mcDisplay}"
@@ -81,7 +85,7 @@ tasks.matching { it.name in ['publishModrinth', 'publishCurseforge'] }.configure
 tasks.register('releaseInfo') {
     group = 'publishing'
     description = 'Writes build/release-info.properties (jar, version number, already published).'
-    def jarFile = releaseJar.flatMap { it.archiveFile }
+    def jarFile = publishedJar
     def output = layout.buildDirectory.file('release-info.properties')
     inputs.file(jarFile)
     outputs.file(output)
@@ -100,7 +104,7 @@ tasks.register('releaseInfo') {
 tasks.register('checkReleaseJar') {
     group = 'verification'
     description = 'Checks the release jar contents (metadata, mixins, translations, data, no test classes).'
-    def jarFile = releaseJar.flatMap { it.archiveFile }
+    def jarFile = publishedJar
     def expectRefmap = loader == 'forge'
     // Loom rewrites the mixin's target names directly in the class when remapping.
     def expectIntermediary = loader == 'fabric' && !mcAtLeast('26.1')

@@ -131,20 +131,18 @@ tasks.withType(ProcessResources).configureEach {
  * the release jar of `smoke_of` installed in the game's mods folder, the way a player installs it.
  * Forge-on-NeoForge builds from source instead: it is the same Minecraft version, only another loader.
  */
+apply from: rootProject.file('gradle/release-jars.gradle')
 if (isSmoke && runtimeLoader == loader) {
-    evaluationDependsOn(":$smokeOf")
-    def release = project(":$smokeOf")
-
     sourceSets.main {
         java.exclude '**/*'
         resources.exclude '**/*'
     }
     // The tests refer to the mod's classes; compile them against the release target's development jar.
-    dependencies { testCompileOnly files(release.tasks.named('jar')) }
+    dependencies { testCompileOnly releaseTargetJars(smokeOf, 'dev') }
 
     def installTestedJar = tasks.register('installTestedJar', Sync) {
         description = "Installs the ${smokeOf} jar into run/gametest/mods."
-        from(release.releaseJar)
+        from(releaseTargetJars(smokeOf, 'release'))
         into(file('run/gametest/mods'))
     }
     tasks.matching { it.name == 'runGametest' }.configureEach { dependsOn installTestedJar }
@@ -155,6 +153,17 @@ tasks.register('testModJar', Jar) {
     description = 'Packages the GameTests as a mod jar.'
     archiveClassifier = 'testmod'
     from sourceSets.test.output
+}
+
+// CI: the jars the smoke test jobs and the release workflow use (see gradle/release-jars.gradle).
+if (!isSmoke) {
+    tasks.register('exportJars', Sync) {
+        description = 'Collects the release, GameTest mod and development jars into build/ci-jars.'
+        into(layout.buildDirectory.dir('ci-jars'))
+        into('release') { from(releaseJar) }
+        into('testmod') { from(productionTestJar) }
+        into('dev') { from(tasks.named('jar')) }
+    }
 }
 
 // There are no JUnit tests: the tests are GameTests, run with runGametest.

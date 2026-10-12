@@ -28,11 +28,12 @@ def atLeast = { String v -> stonecutter.eval(mc, ">=$v".toString()) }
 def serverLoader = nameParts.last()
 def fabricLike = serverLoader in ['fabric', 'quilt']
 def releaseName = project.findProperty('smoke_of') as String ?: project.name
-if (releaseName != project.name) evaluationDependsOn(":$releaseName")
-def release = project(":$releaseName")
+if (!hasProperty('releaseTargetJars')) apply from: rootProject.file('gradle/release-jars.gradle')
+def releaseProps = new Properties()
+rootProject.file("versions/$releaseName/gradle.properties").withInputStream { releaseProps.load(it) }
 
 def loaderVersion = [
-        fabric  : { release.property('fabric_loader_min') },
+        fabric  : { releaseProps.getProperty('fabric_loader_min') },
         quilt   : { project.property('quilt_loader') },
         neoforge: { project.findProperty('neoforge_min') ?: project.property('neoforge') },
         forge   : { project.findProperty('forge_min') ?: project.property('forge') },
@@ -187,7 +188,7 @@ if (gameTestsSupported) {
         group = 'verification'
         description = "Runs the GameTests with the $releaseName jar on an installed $serverLoader server."
         dependsOn installServer
-        def mods = files(release.releaseJar, release.productionTestJar, configurations.productionMods, gameTestMods)
+        def mods = files(releaseTargetJars(releaseName, 'release'), releaseTargetJars(releaseName, 'testmod'), configurations.productionMods, gameTestMods)
         inputs.files(mods)
         workingDir serverDir
         // A GameTest server whose tests never start keeps running; fail instead.
@@ -214,7 +215,7 @@ def runBoot = tasks.register('runProductionBoot', Exec) {
     description = "Starts an installed $serverLoader server with only the $releaseName jar and checks the enchantment exists."
     dependsOn installServer
     if (runGameTests != null) mustRunAfter runGameTests
-    def mods = files(release.releaseJar, configurations.productionMods)
+    def mods = files(releaseTargetJars(releaseName, 'release'), configurations.productionMods)
     inputs.files(mods)
     workingDir serverDir
     // Generous for start-up; a server that ignores `stop` would otherwise run until the CI job times out.

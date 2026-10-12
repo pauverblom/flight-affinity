@@ -1,0 +1,12 @@
+# Keeps the GitHub Actions pinned to commits in the workflows up to date (one PR a month, grouped).
+# Mod dependencies (loaders, Fabric API) differ per Minecraft version; the weekly
+# new-minecraft-versions check handles new versions instead.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
