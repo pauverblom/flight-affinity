@@ -1,0 +1,13 @@
+name: Request
+description: A Minecraft version or loader that is not supported yet, or an idea
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: New Minecraft versions are picked up automatically every week (see CONTRIBUTING.md), so there may already be an issue for yours.
+  - type: textarea
+    id: request
+    attributes:
+      label: What would you like?
+    validations:
+      required: true

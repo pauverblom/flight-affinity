@@ -6,7 +6,7 @@
  * Each jar is one upload, identified by its version number: <mod version>+mc<range>-<loader>.
  * An upload whose version number is already on Modrinth is skipped, so a release only publishes
  * what is new: every jar after a mod_version bump, or just the jars whose Minecraft range grew
- * (same mod version, see "Releasing" in the README). The release workflow runs this for every target.
+ * (same mod version, see "Releasing" in CONTRIBUTING.md). The release workflow runs this for every target.
  */
 apply plugin: 'me.modmuss50.mod-publish-plugin'
 

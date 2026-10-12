@@ -1,0 +1,52 @@
+name: Bug report
+description: Something does not work, or the game does not start with the mod
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! The details below let the bug be reproduced on the right Minecraft version and loader.
+  - type: dropdown
+    id: loader
+    attributes:
+      label: Loader
+      options: [Fabric, Quilt, NeoForge, Forge]
+    validations:
+      required: true
+  - type: input
+    id: minecraft
+    attributes:
+      label: Minecraft version
+      placeholder: "1.21.4"
+    validations:
+      required: true
+  - type: input
+    id: jar
+    attributes:
+      label: Flight Affinity file
+      description: The exact file name in your mods folder.
+      placeholder: flightaffinity-fabric-1.3.0+mc1.21.2-1.21.4.jar
+    validations:
+      required: true
+  - type: input
+    id: loader-version
+    attributes:
+      label: Loader version (and Fabric API version on Fabric/Quilt)
+      placeholder: "Fabric Loader 0.16.10, Fabric API 0.119.4+1.21.4"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Steps to reproduce help a lot (for example "mining stone while jumping with Flight Affinity on the helmet").
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods
+      description: Does it also happen with only Flight Affinity (and Fabric API) installed?
+  - type: textarea
+    id: log
+    attributes:
+      label: Log or crash report
+      description: logs/latest.log, or the file in crash-reports/. You can also paste a link to mclo.gs.
+      render: shell

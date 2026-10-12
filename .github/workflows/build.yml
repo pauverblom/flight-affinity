@@ -34,6 +34,24 @@ jobs:
           echo "release=$(list release)" >> "$GITHUB_OUTPUT"
           echo "smoke=$(list smoke)" >> "$GITHUB_OUTPUT"
 
+  # Checks that need no Minecraft: formatting and valid JSON (.github/scripts/lint.py), and that the
+  # sources were committed in the state of Stonecutter's VCS version (an IDE left on another version
+  # rewrites them; run "Reset active project" before committing).
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Lint
+        run: python3 .github/scripts/lint.py
+      - uses: ./.github/actions/setup
+      - name: Sources in the VCS version's state
+        run: |
+          .github/scripts/gradle.sh "Reset active project"
+          if ! git diff --exit-code --stat -- src stonecutter.gradle.kts; then
+            echo "::error::The sources are not in the state of the VCS version (settings.gradle.kts vcsVersion). Run the Gradle task 'Reset active project' and commit the result."
+            exit 1
+          fi
+
   release:
     needs: targets
     name: ${{ matrix.target }}

@@ -8,7 +8,7 @@ name: release
 #   - after a mod_version bump: every jar;
 #   - after widening a jar's mc_targets (same mod version): only that jar, rebuilt with the new range;
 #   - after adding a target: only its jars.
-# See "Releasing" in the README.
+# See "Releasing" in CONTRIBUTING.md.
 on:
   workflow_dispatch:
     inputs:
