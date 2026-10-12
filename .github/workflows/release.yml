@@ -91,8 +91,10 @@ jobs:
 
       - name: Modrinth and CurseForge
         env:
-          MODRINTH_TOKEN: ${{ inputs.publish && secrets.MODRINTH_TOKEN || '' }}
-          CURSEFORGE_TOKEN: ${{ inputs.publish && secrets.CURSEFORGE_TOKEN || '' }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          # Dry run: only show what would be uploaded (see gradle/publish.gradle).
+          DRY_RUN: ${{ !inputs.publish && '-Pdry_run' || '' }}
         run: |
           info=versions/${{ matrix.target }}/build/release-info.properties
           version=$(grep -oP '^version=\K.*' "$info")
@@ -100,16 +102,18 @@ jobs:
             echo "$version is already published" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          if [ "${{ inputs.publish }}" = true ] && { [ -z "$MODRINTH_TOKEN" ] || [ -z "$CURSEFORGE_TOKEN" ]; }; then
-            echo "::error::MODRINTH_TOKEN and CURSEFORGE_TOKEN must be set in the 'release' environment."
+          if [ -z "$MODRINTH_TOKEN" ] || [ -z "$CURSEFORGE_TOKEN" ]; then
+            echo "::error::MODRINTH_TOKEN and CURSEFORGE_TOKEN must be set as secrets of the 'release' environment."
             exit 1
           fi
+          # Also on dry runs: the tokens work and CurseForge knows every Minecraft version of the jar.
+          .github/scripts/gradle.sh ":${{ matrix.target }}:checkPublishing"
           # Not retried automatically: a retry after a partial upload could upload twice to CurseForge.
-          ./gradlew ":${{ matrix.target }}:publishMods" "-Pprebuilt_jars=${{ runner.temp }}/jars"
+          ./gradlew ":${{ matrix.target }}:publishMods" "-Pprebuilt_jars=${{ runner.temp }}/jars" $DRY_RUN
           if [ "${{ inputs.publish }}" = true ]; then
             echo "Published $version" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Would publish $version (dry run)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Would publish $version (dry run; tokens and game versions checked)" >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # One GitHub release per mod version (tag v<mod version>); later uploads of the same mod version

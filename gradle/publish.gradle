@@ -17,9 +17,11 @@ static String changelogFor(File file, String version) {
 }
 
 def loaderNames = [fabric: 'Fabric', neoforge: 'NeoForge', forge: 'Forge', quilt: 'Quilt']
-def modrinthToken = providers.environmentVariable('MODRINTH_TOKEN')
-def curseforgeToken = providers.environmentVariable('CURSEFORGE_TOKEN')
-def dryRunOnly = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
+// Empty when not set: the release workflow passes empty tokens on dry runs.
+def modrinthToken = providers.environmentVariable('MODRINTH_TOKEN').filter { !it.isBlank() }
+def curseforgeToken = providers.environmentVariable('CURSEFORGE_TOKEN').filter { !it.isBlank() }
+// -Pdry_run (or missing tokens): show what would be uploaded, upload nothing.
+def dryRunOnly = project.hasProperty('dry_run') || !modrinthToken.isPresent() || !curseforgeToken.isPresent()
 def versionNumber = "${project.version}-${loader}".toString()
 // The release workflow publishes the jar CI built and tested (-Pprebuilt_jars, see gradle/release-jars.gradle).
 def publishedJar = project.hasProperty('prebuilt_jars')
@@ -27,21 +29,35 @@ def publishedJar = project.hasProperty('prebuilt_jars')
         : releaseJar.flatMap { it.archiveFile }
 def loadersPublished = [loader] + (project.findProperty('also_runs_on') ?: '').toString().split(' ').findAll()
 
-// Whether this exact jar (version number) is already on Modrinth. Asked once, when first needed.
-def modrinthHasVersion = {
-    def url = new URL("https://api.modrinth.com/v2/project/${modrinth_id}/version/${URLEncoder.encode(versionNumber, 'UTF-8')}")
-    def connection = (HttpURLConnection) url.openConnection()
+// GET request; returns [HTTP status, body].
+def httpGet = { String url, Map<String, String> headers = [:] ->
+    def connection = (HttpURLConnection) new URL(url).openConnection()
     connection.setRequestProperty('User-Agent', "${mod_sources} (release workflow)")
+    headers.each { name, value -> connection.setRequestProperty(name, value) }
     connection.connectTimeout = 20_000
     connection.readTimeout = 20_000
     try {
         def code = connection.responseCode
-        if (code == 200) return true
-        if (code == 404) return false
-        throw new GradleException("Modrinth answered HTTP $code when looking up $versionNumber")
+        def stream = code < 400 ? connection.inputStream : connection.errorStream
+        return [code, stream?.text ?: '']
     } finally {
         connection.disconnect()
     }
+}
+
+// Whether this exact jar (version number) is already on Modrinth. Asked once, when first needed.
+def modrinthHasVersion = {
+    def (code, body) = httpGet("https://api.modrinth.com/v2/project/${modrinth_id}/version/${URLEncoder.encode(versionNumber, 'UTF-8')}")
+    if (code == 200) return true
+    if (code == 404) return false
+    throw new GradleException("Modrinth answered HTTP $code when looking up $versionNumber: $body")
+}.memoize()
+
+// The upload needs Modrinth's project ID; modrinth_id in gradle.properties may be the slug from the URL.
+def modrinthProjectId = {
+    def (code, body) = httpGet("https://api.modrinth.com/v2/project/${modrinth_id}")
+    if (code != 200) throw new GradleException("Modrinth has no project '$modrinth_id' (HTTP $code)")
+    return new groovy.json.JsonSlurper().parseText(body).id as String
 }.memoize()
 
 publishMods {
@@ -58,7 +74,7 @@ publishMods {
     loadersPublished.each { modLoaders.add(it) }
 
     modrinth {
-        projectId = modrinth_id
+        projectId = providers.provider { modrinthProjectId() }
         accessToken = modrinthToken
         minecraftVersions.addAll(mcTargets)
         if (loader == 'fabric') requires('fabric-api')
@@ -94,6 +110,35 @@ tasks.register('releaseInfo') {
         def published = modrinthHasVersion()
         output.get().asFile.text = "jar=${jarFile.get().asFile.absolutePath}\nversion=$versionNumber\npublished=$published\n"
         logger.lifecycle("$versionNumber: ${published ? 'already on Modrinth' : 'not published yet'}")
+    }
+}
+
+/*
+ * Checks, without uploading, that a real release of this jar would be accepted: both tokens work, the
+ * Modrinth project exists, and CurseForge knows every Minecraft version the jar is published for
+ * (it only accepts versions it lists). The release workflow runs it on dry runs and real releases.
+ */
+tasks.register('checkPublishing') {
+    group = 'publishing'
+    description = 'Checks the Modrinth/CurseForge tokens and that CurseForge knows the Minecraft versions.'
+    def minecraftVersions = mcTargets
+    doLast {
+        if (!modrinthToken.isPresent() || !curseforgeToken.isPresent())
+            throw new GradleException('MODRINTH_TOKEN and CURSEFORGE_TOKEN must be set')
+        def problems = []
+        def (modrinthCode, modrinthBody) = httpGet('https://api.modrinth.com/v2/user', [Authorization: modrinthToken.get()])
+        if (modrinthCode != 200) problems << "MODRINTH_TOKEN was rejected by Modrinth (HTTP $modrinthCode)"
+        logger.lifecycle("Modrinth project $modrinth_id has ID ${modrinthProjectId()}")
+        def (cfCode, cfBody) = httpGet('https://minecraft.curseforge.com/api/game/versions', ['X-Api-Token': curseforgeToken.get()])
+        if (cfCode != 200) {
+            problems << "CURSEFORGE_TOKEN was rejected by CurseForge (HTTP $cfCode)"
+        } else {
+            def known = (new groovy.json.JsonSlurper().parseText(cfBody) as List).collect { it.name as String } as Set
+            def unknown = minecraftVersions.findAll { !known.contains(it) }
+            if (unknown) problems << "CurseForge does not list Minecraft ${unknown.join(', ')} yet; its upload would be rejected"
+        }
+        if (problems) throw new GradleException(problems.join('\n'))
+        logger.lifecycle('Modrinth and CurseForge would accept this upload')
     }
 }
 
