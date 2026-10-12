@@ -87,8 +87,10 @@ def metadata = [
         maven_mc_range : mcMin == mcMax ? "[$mcMin]" : "[$mcMin,$mcMax]",
         loader_dep     : loader == 'forge' ? 'forge' : 'neoforge',
         loader_range   : loader == 'forge' ? '[47,)' : "[${neoForgeVersionFor(mcMin)},)",
-        // Forge still uses `mandatory = true`; NeoForge (even 20.4, which reads META-INF/mods.toml) rejects it.
-        legacy_toml    : loader == 'forge',
+        // Dependencies: Forge and NeoForge before 20.4 (FancyModLoader 1.x) require `mandatory`; later
+        // NeoForge uses `type` and, in development, rejects `mandatory` unless `type` is also present.
+        dep_mandatory  : loader == 'forge' || (loader == 'neoforge' && !mcAtLeast('1.20.5')),
+        dep_type       : loader == 'neoforge',
         test_entrypoint: mcAtLeast('1.21.5') ? 'main' : 'fabric-gametest',
 ]
 

@@ -11,7 +11,8 @@ description = '''GameTests for Flight Affinity.'''
 
 [[dependencies.flightaffinity_test]]
 modId = "${mod_id}"
-<% if (legacy_toml) { %>mandatory = true<% } else { %>type = "required"<% } %>
-versionRange = "[0,)"
+<% if (dep_mandatory) { %>mandatory = true
+<% } %><% if (dep_type) { %>type = "required"
+<% } %>versionRange = "[0,)"
 ordering = "AFTER"
 side = "BOTH"

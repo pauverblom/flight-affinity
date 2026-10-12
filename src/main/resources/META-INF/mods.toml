@@ -16,15 +16,17 @@ description = '''${mod_description}'''
 
 [[dependencies.${mod_id}]]
 modId = "${loader_dep}"
-<% if (legacy_toml) { %>mandatory = true<% } else { %>type = "required"<% } %>
-versionRange = "${loader_range}"
+<% if (dep_mandatory) { %>mandatory = true
+<% } %><% if (dep_type) { %>type = "required"
+<% } %>versionRange = "${loader_range}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.${mod_id}]]
 modId = "minecraft"
-<% if (legacy_toml) { %>mandatory = true<% } else { %>type = "required"<% } %>
-versionRange = "${maven_mc_range}"
+<% if (dep_mandatory) { %>mandatory = true
+<% } %><% if (dep_type) { %>type = "required"
+<% } %>versionRange = "${maven_mc_range}"
 ordering = "NONE"
 side = "BOTH"
 <% if (loader == 'neoforge') { %>

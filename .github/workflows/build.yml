@@ -26,6 +26,7 @@ jobs:
     needs: targets
     name: ${{ matrix.target }}
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -93,8 +94,12 @@ jobs:
             echo "::group::Game log errors"
             grep -n -E "ERROR|FATAL|Exception|Caused by|failed|Failed|passed|tests" "$log" | grep -v -E "^[0-9]+:\s+at " | head -120 || true
             echo "::endgroup::"
+            echo "::group::Start of game log"
+            # Skips the GameTest progress bars, which can fill the log.
+            grep -v -E "GameTestServer.*\]: \[[ +x_]*\]$" "$log" | head -n 150
+            echo "::endgroup::"
             echo "::group::End of game log"
-            tail -n 60 "$log"
+            grep -v -E "GameTestServer.*\]: \[[ +x_]*\]$" "$log" | tail -n 60
             echo "::endgroup::"
             echo "::group::First stack trace"
             grep -v -E "server.properties|eula.txt" "$log" | grep -n -m1 -A60 -E "Exception|Error:" || true

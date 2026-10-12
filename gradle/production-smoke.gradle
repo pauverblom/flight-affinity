@@ -17,7 +17,7 @@ def release = project(":$smokeOf")
 def neoforge = project.neoforge as String
 def serverDir = file('run/gametest')
 def argsFile = "libraries/net/neoforged/neoforge/$neoforge/unix_args.txt"
-def java = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(project.java_version as int) }
+def serverJava = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(project.java_version as int) }
 
 repositories {
     maven {
@@ -41,7 +41,7 @@ def installServer = tasks.register('installServer', Exec) {
     workingDir serverDir
     doFirst {
         serverDir.mkdirs()
-        executable java.get().executablePath.asFile.absolutePath
+        executable serverJava.get().executablePath.asFile.absolutePath
         args '-jar', installer.singleFile.absolutePath, '--installServer', serverDir.absolutePath
     }
 }
@@ -58,9 +58,11 @@ tasks.register('runGametest', Exec) {
     description = "Runs the GameTests on a NeoForge $neoforge server with the ${smokeOf} jar."
     dependsOn installServer, installMods
     workingDir serverDir
+    // A GameTest server whose tests never start keeps running; fail instead.
+    timeout = java.time.Duration.ofMinutes(15)
     doFirst {
         new File(serverDir, 'eula.txt').text = 'eula=true\n'
-        executable java.get().executablePath.asFile.absolutePath
+        executable serverJava.get().executablePath.asFile.absolutePath
         args '-Dneoforge.gameTestServer=true', "@$argsFile", 'nogui'
     }
 }
