@@ -23,3 +23,13 @@ runs:
       run: |
         mkdir -p ~/.gradle
         echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
+    # The Gradle wrapper does not retry its own download (services.gradle.org sometimes answers 5xx).
+    - name: Download Gradle
+      shell: bash
+      run: |
+        for attempt in 1 2 3 4 5; do
+          ./gradlew --version > /dev/null && exit 0
+          echo "Gradle download failed (attempt $attempt), retrying in $((attempt * 15)) s"
+          sleep $((attempt * 15))
+        done
+        exit 1
