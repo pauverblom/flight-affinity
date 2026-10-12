@@ -2,6 +2,11 @@
  * Modrinth + CurseForge upload for one target: ./gradlew :<target>:publishMods
  * Tokens come from MODRINTH_TOKEN / CURSEFORGE_TOKEN; without them the task is a dry run.
  * `releaseJar` is set by the loader script to the jar players actually install.
+ *
+ * Each jar is one upload, identified by its version number: <mod version>+mc<range>-<loader>.
+ * An upload whose version number is already on Modrinth is skipped, so a release only publishes
+ * what is new: every jar after a mod_version bump, or just the jars whose Minecraft range grew
+ * (same mod version, see "Releasing" in the README). The release workflow runs this for every target.
  */
 apply plugin: 'me.modmuss50.mod-publish-plugin'
 
@@ -11,22 +16,42 @@ static String changelogFor(File file, String version) {
     return m ? (m[0][1] as String).trim() : "Release $version"
 }
 
-def loaderNames = [fabric: 'Fabric', neoforge: 'NeoForge', forge: 'Forge']
+def loaderNames = [fabric: 'Fabric', neoforge: 'NeoForge', forge: 'Forge', quilt: 'Quilt']
 def modrinthToken = providers.environmentVariable('MODRINTH_TOKEN')
 def curseforgeToken = providers.environmentVariable('CURSEFORGE_TOKEN')
+def dryRunOnly = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
+def versionNumber = "${project.version}-${loader}".toString()
+def loadersPublished = [loader] + (project.findProperty('also_runs_on') ?: '').toString().split(' ').findAll()
+
+// Whether this exact jar (version number) is already on Modrinth. Asked once, when first needed.
+def modrinthHasVersion = {
+    def url = new URL("https://api.modrinth.com/v2/project/${modrinth_id}/version/${URLEncoder.encode(versionNumber, 'UTF-8')}")
+    def connection = (HttpURLConnection) url.openConnection()
+    connection.setRequestProperty('User-Agent', "${mod_sources} (release workflow)")
+    connection.connectTimeout = 20_000
+    connection.readTimeout = 20_000
+    try {
+        def code = connection.responseCode
+        if (code == 200) return true
+        if (code == 404) return false
+        throw new GradleException("Modrinth answered HTTP $code when looking up $versionNumber")
+    } finally {
+        connection.disconnect()
+    }
+}.memoize()
 
 publishMods {
     file = releaseJar.flatMap { it.archiveFile }
     // Modrinth/CurseForge version numbers also name the loader, so each upload's number is unique.
-    version = "${project.version}-${loader}"
-    displayName = "${mod_name} ${mod_version} for ${loaderNames[loader]} ${mcDisplay}"
-    changelog = changelogFor(rootProject.file('CHANGELOG.md'), mod_version as String)
+    version = versionNumber
+    displayName = "${mod_name} ${mod_version} for ${loadersPublished.collect { loaderNames[it] }.join('/')} ${mcDisplay}"
+    // The same mod version can be uploaded again later for more Minecraft versions; say which this is.
+    changelog = "Minecraft ${mcTargets.join(', ')} on ${loadersPublished.collect { loaderNames[it] }.join(', ')}.\n\n" +
+            changelogFor(rootProject.file('CHANGELOG.md'), mod_version as String)
     type = STABLE
-    dryRun = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
+    dryRun = dryRunOnly
 
-    modLoaders.add(loader)
-    // e.g. NeoForge for the Forge 1.20.1 jar, Quilt for Fabric jars; each has a <mc>-<loader>-<other> smoke test.
-    (project.findProperty('also_runs_on') ?: '').toString().split(' ').findAll().each { modLoaders.add(it) }
+    loadersPublished.each { modLoaders.add(it) }
 
     modrinth {
         projectId = modrinth_id
@@ -43,6 +68,28 @@ publishMods {
         client = true
         server = true
         if (loader == 'fabric') requires('fabric-api')
+    }
+}
+
+// Real uploads skip jars that are already published (Modrinth is the reference; both are uploaded
+// together). Dry runs always run, to show what would be uploaded.
+tasks.matching { it.name in ['publishModrinth', 'publishCurseforge'] }.configureEach {
+    onlyIf("$versionNumber is not on Modrinth yet") { dryRunOnly || !modrinthHasVersion() }
+}
+
+// For the release workflow: the jar, its version number and whether it is already published.
+tasks.register('releaseInfo') {
+    group = 'publishing'
+    description = 'Writes build/release-info.properties (jar, version number, already published).'
+    def jarFile = releaseJar.flatMap { it.archiveFile }
+    def output = layout.buildDirectory.file('release-info.properties')
+    inputs.file(jarFile)
+    outputs.file(output)
+    outputs.upToDateWhen { false }
+    doLast {
+        def published = modrinthHasVersion()
+        output.get().asFile.text = "jar=${jarFile.get().asFile.absolutePath}\nversion=$versionNumber\npublished=$published\n"
+        logger.lifecycle("$versionNumber: ${published ? 'already on Modrinth' : 'not published yet'}")
     }
 }
 

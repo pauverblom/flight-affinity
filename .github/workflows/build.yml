@@ -4,6 +4,8 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  # The release workflow runs every test before publishing anything.
+  workflow_call:
 
 defaults:
   run:
@@ -92,7 +94,7 @@ jobs:
 
       - name: Publish dry run
         if: steps.kind.outputs.smoke == 'false'
-        run: ./gradlew ":${{ matrix.target }}:publishMods" 2>&1 | tee -a gradle.log
+        run: ./gradlew ":${{ matrix.target }}:publishMods" ":${{ matrix.target }}:releaseInfo" 2>&1 | tee -a gradle.log
 
       # Puts the lines that explain a failure at the end of the log, where they are easy to find.
       - name: Summarize failure

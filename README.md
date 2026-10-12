@@ -71,7 +71,7 @@ works on 1.20.2, 1.20.3 and 1.20.4. The Forge 1.20.1 jar also runs on NeoForge 1
 | Build one target | `./gradlew :1.21.1-neoforge:build` |
 | Run the GameTests for a target | `./gradlew :1.21.1-neoforge:runGametest` |
 | Check the jar players get | `./gradlew :1.21.1-neoforge:checkReleaseJar` |
-| Publish one target | `MODRINTH_TOKEN=... CURSEFORGE_TOKEN=... ./gradlew :1.21.1-neoforge:publishMods` (dry run without tokens) |
+| Release | Actions tab, **release** workflow, *Run workflow* (see Releasing) |
 | Support a new Minecraft version with a new jar | Add `versions/<mc>-<loader>/gradle.properties` with `mc_targets`; CI picks it up automatically |
 | Publish an existing jar for one more version | Add the version to that target's `mc_targets` and add a smoke target for it (the build tells you which one is missing) |
 
@@ -122,3 +122,35 @@ CI (`.github/workflows/build.yml`) runs one job per target. A release target's j
 5. does a Modrinth/CurseForge publish dry run.
 
 A smoke target's job runs steps 2 and 3 with the release jar.
+
+### Releasing
+
+Releases are published by the **release** workflow (`.github/workflows/release.yml`), started by hand
+from the Actions tab. Leave *publish* unticked for a dry run that lists what would be uploaded. It:
+
+1. refuses to run if `CHANGELOG.md` has unreleased changes or no section for `mod_version`,
+2. runs every test (the whole CI matrix),
+3. uploads each jar that is not on Modrinth yet to Modrinth and CurseForge, and attaches it to the
+   GitHub release `v<mod_version>` (created on first use).
+
+The tokens are the `MODRINTH_TOKEN` and `CURSEFORGE_TOKEN` secrets of the `release` environment
+(Settings > Environments); add yourself as a required reviewer there to approve each release.
+
+Each jar is one upload, named by its mod version, Minecraft range and loader, e.g.
+`1.3.0+mc26.3-26.3.1-fabric`. Uploads that already exist are skipped, so **what gets published follows
+from what changed**:
+
+| Change | What to do | Published |
+|---|---|---|
+| The mod changed (fix, feature, balance) | Bump `mod_version`, describe it in `CHANGELOG.md` | Every jar |
+| A new Minecraft version works with an existing jar | Add it to that target's `mc_targets` and add its smoke target | That jar only, rebuilt for the wider range (the range is part of its metadata), same mod version |
+| A new Minecraft version needs code changes | Add a target (version-specific code behind `//?` conditions) | The new jars only, same mod version |
+
+The mod version only changes when the mod does: `+mc...` is build metadata, so
+`1.3.0+mc26.3` and `1.3.0+mc26.3-26.3.1` are the same release of the mod for different Minecraft
+ranges. The older upload stays available for the versions it covered. A change to shared code that
+alters existing jars needs a new `mod_version`, since those jars would otherwise be republished under
+an unchanged version.
+
+If an upload fails half-way, run the workflow again: it continues with what is missing. (Modrinth decides
+what exists; if only the CurseForge upload of a jar failed, upload that file to CurseForge by hand.)

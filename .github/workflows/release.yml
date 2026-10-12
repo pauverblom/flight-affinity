@@ -1,0 +1,138 @@
+name: release
+
+# Publishes to Modrinth, CurseForge and a GitHub release. Run it from the Actions tab
+# ("Run workflow"); leave "publish" unticked for a dry run that only shows what would be uploaded.
+#
+# Every jar is identified by <mod version>+mc<first>-<last>-<loader>. Jars already on Modrinth are
+# skipped, so a run publishes exactly what is new:
+#   - after a mod_version bump: every jar;
+#   - after widening a jar's mc_targets (same mod version): only that jar, rebuilt with the new range;
+#   - after adding a target: only its jars.
+# See "Releasing" in the README.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish (unticked = dry run)
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.targets.outputs.list }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the mod version and changelog
+        id: version
+        run: |
+          version=$(grep -oP '^mod_version=\K.*' gradle.properties)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Mod version $version" >> "$GITHUB_STEP_SUMMARY"
+          # Changes that are not part of a released mod version must not go out under an old version.
+          unreleased=$(awk '/^## \[Unreleased\]/ {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md | grep -v -E '^\s*$|^###' || true)
+          if [ -n "$unreleased" ]; then
+            echo "::error::CHANGELOG.md has unreleased changes. Move them to a section for a new mod_version (and bump mod_version in gradle.properties) before releasing."
+            exit 1
+          fi
+          if ! grep -q "^## \[$version\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no section for $version."
+            exit 1
+          fi
+
+      # Release targets: the version folders that build a jar (no smoke_of).
+      - id: targets
+        run: |
+          list=$(for d in versions/*/; do t=$(basename "$d"); grep -q '^smoke_of=' "$d/gradle.properties" || echo "$t"; done | jq -R . | jq -cs .)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: plan
+    uses: ./.github/workflows/build.yml
+
+  publish:
+    needs: [plan, test]
+    name: publish ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    # Holds the MODRINTH_TOKEN and CURSEFORGE_TOKEN secrets; add required reviewers to it in the
+    # repository settings to approve each release.
+    environment: release
+    permissions:
+      contents: write
+    strategy:
+      # Everything was tested before this job; a failed upload does not stop the others (re-running
+      # the workflow only uploads what is still missing).
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.plan.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Use the installed JDKs as toolchains
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
+
+      - name: Build
+        run: ./gradlew ":${{ matrix.target }}:build" ":${{ matrix.target }}:checkReleaseJar" ":${{ matrix.target }}:releaseInfo"
+
+      - name: Modrinth and CurseForge
+        env:
+          MODRINTH_TOKEN: ${{ inputs.publish && secrets.MODRINTH_TOKEN || '' }}
+          CURSEFORGE_TOKEN: ${{ inputs.publish && secrets.CURSEFORGE_TOKEN || '' }}
+        run: |
+          info=versions/${{ matrix.target }}/build/release-info.properties
+          version=$(grep -oP '^version=\K.*' "$info")
+          if grep -q '^published=true' "$info"; then
+            echo "$version is already published" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "${{ inputs.publish }}" = true ] && { [ -z "$MODRINTH_TOKEN" ] || [ -z "$CURSEFORGE_TOKEN" ]; }; then
+            echo "::error::MODRINTH_TOKEN and CURSEFORGE_TOKEN must be set in the 'release' environment."
+            exit 1
+          fi
+          ./gradlew ":${{ matrix.target }}:publishMods"
+          if [ "${{ inputs.publish }}" = true ]; then
+            echo "Published $version" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Would publish $version (dry run)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # One GitHub release per mod version (tag v<mod version>); later uploads of the same mod version
+      # for more Minecraft versions add their jars to it.
+      - name: GitHub release
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          jar=$(grep -oP '^jar=\K.*' versions/${{ matrix.target }}/build/release-info.properties)
+          tag="v$VERSION"
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
+            # Another job may create it at the same time.
+            gh release create "$tag" --target "$GITHUB_SHA" --title "Flight Affinity $VERSION" --notes-file notes.md || gh release view "$tag" > /dev/null
+          fi
+          if gh release view "$tag" --json assets --jq '.assets[].name' | grep -qxF "$(basename "$jar")"; then
+            echo "$(basename "$jar") is already attached to $tag"
+          else
+            gh release upload "$tag" "$jar"
+          fi
