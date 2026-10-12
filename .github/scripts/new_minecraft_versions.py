@@ -222,7 +222,8 @@ def apply(entry):
 
 
 NETWORK_ERROR = re.compile(r'status code (5\d\d|429)|response code: (5\d\d|429)|answered HTTP (5\d\d|429)|'
-                           r'Read timed out|Connect(ion)? timed out|Connection reset|Remote host terminated the handshake')
+                           r'Read timed out|Connect(ion)? timed out|Connection reset|Remote host terminated the handshake|'
+                           r"Could not resolve all artifacts for configuration 'classpath'")
 
 
 def gradle(*tasks):
