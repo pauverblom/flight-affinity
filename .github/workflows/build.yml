@@ -40,10 +40,10 @@ jobs:
           echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
 
       - name: Build
-        run: ./gradlew ":${{ matrix.target }}:build" --stacktrace
+        run: ./gradlew ":${{ matrix.target }}:build"
 
       - name: GameTests
-        run: ./gradlew ":${{ matrix.target }}:runGametest" --stacktrace
+        run: ./gradlew ":${{ matrix.target }}:runGametest"
 
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar

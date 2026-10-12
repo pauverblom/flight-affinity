@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- Builds for Minecraft 26.2 and 26.3.
+
+### Changed
+- The Fabric version no longer requires Fabric API.
+- On Minecraft 1.20.1-1.20.6 the enchantment now uses the same weight and enchanting costs as on 1.21+.
+
+### Fixed
+- The mod now refuses to load if its mixin cannot apply, instead of silently doing nothing.
+
 ## [1.3.0] - 2026-04-02
 
 ### Added

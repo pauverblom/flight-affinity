@@ -24,3 +24,51 @@ Can Be Applied **On Any Helmet:**
 ****With**** Flight Affinity:
 
 [![WIth-Flight-Affinity.gif](https://i.postimg.cc/1zq7PtpT/WIth-Flight-Affinity.gif)](https://postimg.cc/R3vLLvpQ)
+
+## Development
+
+One source tree builds every supported Minecraft version and loader with [Stonecutter](https://stonecutter.kikugie.dev/).
+
+```
+src/                         shared code; version differences are //? comments
+versions/<mc>-<loader>/      one folder per build target
+  gradle.properties          dependency versions + mc_targets (versions the jar is published for)
+build.fabric.gradle          Fabric/Quilt (Loom; remapped before 26.1)
+build.neoforge.gradle        NeoForge (ModDevGradle)
+build.forge.gradle           Forge 1.20.1 (ModDevGradle legacyforge)
+gradle/common.gradle         shared setup, generates fabric.mod.json / mods.toml from mc_targets
+gradle/publish.gradle        Modrinth + CurseForge upload, release-jar checks
+```
+
+Version-specific code uses Stonecutter comments, for example:
+
+```java
+//? if >=1.21.2 {
+return registryAccess().lookupOrThrow(Registries.ENCHANTMENT)...;
+//?} else {
+/*return registryAccess().registryOrThrow(Registries.ENCHANTMENT)...;
+*///?}
+```
+
+`fabric`, `neoforge` and `forge` work as conditions too, and classes in a `fabric`/`neoforge`/`forge`
+package are only compiled for that loader.
+
+### Everyday tasks
+
+| What | How |
+|---|---|
+| Work on another version in the IDE | Run the Gradle task `stonecutter > Set active project to <target>`; run `Reset active project` before committing |
+| Build one target | `./gradlew :1.21.1-neoforge:build` |
+| Run the GameTests for a target | `./gradlew :1.21.1-neoforge:runGametest` |
+| Check the jar players get | `./gradlew :1.21.1-neoforge:checkReleaseJar` |
+| Publish one target | `MODRINTH_TOKEN=... CURSEFORGE_TOKEN=... ./gradlew :1.21.1-neoforge:publishMods` (dry run without tokens) |
+| Support a new Minecraft version | Add `versions/<mc>-<loader>/gradle.properties`; CI picks it up automatically |
+
+### Tests
+
+`src/test` holds the GameTests. `FlightAffinityTests.ALL` is the single list of tests; each loader
+registers it (see the `test/fabric`, `test/neoforge`, `test/forge` packages). From 1.21.5 on every test
+also needs a `data/flightaffinity-test/test_instance/<name>.json` file.
+
+CI (`.github/workflows/build.yml`) builds every target, runs its GameTests, checks the release jar
+and does a publish dry run.

@@ -52,10 +52,11 @@ tasks.register('checkReleaseJar') {
     group = 'verification'
     description = 'Checks the release jar contents (metadata, refmap, no test classes).'
     def jarFile = releaseJar.flatMap { it.archiveFile }
-    def expectRefmap = loader == 'forge' || (loader == 'fabric' && !mcAtLeast('26.1'))
+    def expectRefmap = loader == 'forge'
+    // Loom rewrites the mixin's target names directly in the class when remapping.
+    def expectIntermediary = loader == 'fabric' && !mcAtLeast('26.1')
     def metadataFile = loader == 'fabric' ? 'fabric.mod.json'
             : (loader == 'neoforge' && mcAtLeast('1.20.5')) ? 'META-INF/neoforge.mods.toml' : 'META-INF/mods.toml'
-    def obfuscatedName = loader == 'fabric' ? 'class_' : 'm_'
     def modId = mod_id
     inputs.file(jarFile)
     doLast {
@@ -70,10 +71,18 @@ tasks.register('checkReleaseJar') {
             def refmap = text("${modId}.refmap.json")
             if (expectRefmap) {
                 if (refmap == null) problems << 'missing mixin refmap'
-                else if (!refmap.contains(obfuscatedName)) problems << "refmap has no $obfuscatedName names: $refmap"
+                else if (!refmap.contains('m_')) problems << "refmap has no SRG names: $refmap"
                 if (mixins != null && !mixins.contains('refmap')) problems << 'mixin config does not reference the refmap'
             } else if (mixins != null && mixins.contains('refmap')) {
                 problems << 'mixin config references a refmap that is not needed'
+            }
+            if (expectIntermediary) {
+                def mixin = zip.getEntry('net/baneina/flightaffinity/mixin/PlayerMixin.class')
+                def bytes = mixin == null ? '' : new String(zip.getInputStream(mixin).bytes, 'ISO-8859-1')
+                // Both the class references and the target strings in the annotations must be remapped.
+                ['getDestroySpeed', 'onGround', 'net/minecraft/world/entity/player/Player'].each {
+                    if (bytes.contains(it)) problems << "mixin still refers to the Mojang name $it"
+                }
             }
             if (!problems.isEmpty()) throw new GradleException("${jarFile.get().asFile.name}: ${problems.join('; ')}")
             logger.lifecycle("${jarFile.get().asFile.name} looks good")

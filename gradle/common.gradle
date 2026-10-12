@@ -69,8 +69,8 @@ def metadata = [
         mod_issues     : mod_issues,
         java_version   : java_version,
         loader         : loader,
-        // Mixin needs a refmap wherever the shipped jar is remapped (obfuscated Fabric, Forge).
-        refmap         : (loader == 'fabric' && !mcAtLeast('26.1')) || loader == 'forge',
+        // Forge 1.20.1 reobfuscates through a mixin refmap; Loom remaps mixins without one.
+        refmap         : loader == 'forge',
         mixin_compat   : mcAtLeast('1.20.5') ? 'JAVA_21' : 'JAVA_17',
         pack_format    : project.findProperty('pack_format') ?: '',
         fabric_mc_range: mcMin == mcMax ? mcMin : ">=$mcMin <=$mcMax",
@@ -105,6 +105,9 @@ tasks.withType(ProcessResources).configureEach {
     if (!mcAtLeast('1.21') || mcAtLeast('1.21.5')) exclude 'data/*/structure/**'
     if (!mcAtLeast('1.21.5')) exclude 'data/*/test_instance/**'
 }
+
+// There are no JUnit tests: the tests are GameTests, run with runGametest.
+tasks.named('test') { enabled = false }
 
 tasks.withType(Jar).configureEach {
     from(rootProject.file('LICENSE')) { rename { "LICENSE_${mod_id}" } }
