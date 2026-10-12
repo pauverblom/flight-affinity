@@ -154,3 +154,21 @@ an unchanged version.
 
 If an upload fails half-way, run the workflow again: it continues with what is missing. (Modrinth decides
 what exists; if only the CurseForge upload of a jar failed, upload that file to CurseForge by hand.)
+
+### New Minecraft versions
+
+Every Monday the **new-minecraft-versions** workflow (`.github/scripts/new_minecraft_versions.py`; it can
+also be started by hand) looks for Minecraft releases that no jar covers. For each one, as soon as
+Fabric API or NeoForge has builds for it, it does what you would do by hand: adds the version to the
+`mc_targets` of the newest jar before it, creates its smoke target, and runs the GameTests and
+production tests. Then it:
+
+- pushes the additions that passed to the branch `compat/new-minecraft-versions`;
+- opens an issue *Minecraft &lt;version&gt;: add support*, assigned to the repository owner, saying per loader
+  whether the existing jar works, which builds are still missing, or what failed (then a new target
+  with code changes is needed). The issue is updated, with a comment, when that changes.
+
+GitHub emails you about issues assigned to you and comments that mention you, as long as email is
+enabled under Settings > Notifications ("Participating, @mentions and custom"). To add the version,
+open a pull request from the branch (the issue links it), merge it, and run the release workflow:
+only the jars whose range grew are uploaded. Close the issue to stop updates for a version.
