@@ -58,6 +58,16 @@ tasks.named('testModJar', Jar) {
     archiveClassifier = 'testmod-dev'
     destinationDirectory = layout.buildDirectory.dir('devlibs')
 }
-ext.productionTestJar = obfuscation.reobfuscate(tasks.named('testModJar'), sourceSets.test)
+// (obfuscation.reobfuscate() only supports the main source set: it also rewires its publication.)
+ext.productionTestJar = tasks.register('reobfTestModJar', net.neoforged.moddevgradle.legacyforge.tasks.RemapJar) {
+    description = 'Reobfuscates the GameTests mod jar to SRG names.'
+    def testJar = tasks.named('testModJar', Jar)
+    input = testJar.flatMap { it.archiveFile }
+    archiveBaseName = testJar.flatMap { it.archiveBaseName }
+    archiveVersion = testJar.flatMap { it.archiveVersion }
+    archiveClassifier = 'testmod'
+    libraries.from(sourceSets.test.compileClasspath)
+    obfuscation.configureNamedToSrgOperation(remapOperation)
+}
 if (!isSmoke) apply from: rootProject.file('gradle/publish.gradle')
 apply from: rootProject.file('gradle/production.gradle')

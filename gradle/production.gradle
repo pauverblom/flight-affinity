@@ -3,8 +3,8 @@
  * (no development environment, no remapping at runtime, real metadata checks). Every target runs them:
  *
  *  - runProductionBoot: the release jar alone (plus Fabric API on Fabric and Quilt) must start, and
- *    the enchantment must exist: the console command `enchant @a <enchantment>` can only answer
- *    "No player was found" if the enchantment is registered.
+ *    the enchantment must exist: the console command `enchant @a <enchantment>` only gets as far as
+ *    "No entity was found" (there are no players) if the enchantment is registered.
  *  - runProductionGametest: the release jar plus the GameTests (packaged as a mod by the release
  *    target, see productionTestJar) on a GameTest server. Not available on NeoForge 1.21.5-1.21.8,
  *    which can only start a GameTest server in development.
@@ -190,7 +190,7 @@ def runBoot = tasks.register('runProductionBoot', Exec) {
     doLast {
         def log = latestLog().text
         project.copy { from latestLog(); into serverDir; rename { 'boot.log' } }
-        if (!log.contains('No player was found'))
+        if (!(log =~ /No (entity|player) was found/))
             throw new GradleException("The server did not start, or $enchantment is not registered; see run/production/boot.log")
         logger.lifecycle("$releaseName starts on $serverLoader $loaderVersion (Minecraft $mc) and registers $enchantment")
     }

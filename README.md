@@ -6,6 +6,8 @@ Based on the original [Aerial Affinity Mod](https://www.curseforge.com/minecraft
 
 This new enchantment is applied on helmets, and it can be obtained by villager trading, through the enchanting table or inside dungeons.
 
+On Fabric and Quilt, Flight Affinity requires [Fabric API](https://modrinth.com/mod/fabric-api).
+
 ## Media
 New Enchanted Book: **Flight Affinity**
 
@@ -39,7 +41,7 @@ build.neoforge.gradle        NeoForge (ModDevGradle)
 build.forge.gradle           Forge 1.20.1 (ModDevGradle legacyforge)
 gradle/common.gradle         shared setup, generates fabric.mod.json / mods.toml from mc_targets
 gradle/publish.gradle        Modrinth + CurseForge upload, release-jar checks
-gradle/production-smoke.gradle  smoke tests on an installed NeoForge server (see Tests)
+gradle/production.gradle     production tests on servers installed by each loader's installer (see Tests)
 ```
 
 Version-specific code uses Stonecutter comments, for example:
@@ -90,20 +92,33 @@ target make that happen:
   `flightaffinity-neoforge-1.3.0+mc1.20.2-1.20.4.jar` on Minecraft 1.20.2.
 
 `settings.gradle.kts` refuses to build if any version in an `mc_targets` list, or any loader in
-`also_runs_on`, has no smoke target, so a jar cannot be published for a version nobody tested.
-`<mc>-forge-neoforge` is the smoke target that runs the Forge 1.20.1 code on NeoForge 1.20.1.
+`also_runs_on`, has no smoke target, so a jar cannot be published for a version or loader nobody tested.
+`<mc>-<loader>-<other loader>` targets run a jar on another loader: the Forge 1.20.1 jar on NeoForge 1.20.1,
+and each Fabric jar on Quilt.
 
-ModDevGradle cannot set up NeoForge 20.2, 20.3 or 20.5. Smoke targets for those (`production_server=true`)
-install a real NeoForge server with NeoForge's installer and run the release target's GameTests, packaged
-as a mod, on it.
+Every target also runs **production tests** (`./gradlew :<target>:productionTest`, `gradle/production.gradle`).
+They install a real server with the loader's own installer, on the **oldest** loader version the jar
+accepts (`fabric_loader_min`, `neoforge_min`, `forge_min`; the development GameTests use the newest), and:
+
+- start it with only the release jar (plus Fabric API on Fabric/Quilt) and check, with a console command,
+  that the enchantment is registered;
+- run the GameTests, packaged as a mod, on a GameTest server. NeoForge 1.21.5-1.21.8 can only start a
+  GameTest server in development, so those versions get the start-up check only.
+
+This catches what a development environment hides: wrong metadata, a jar that was not remapped, a missing
+dependency (Fabric API loads the mod's data and translations), a loader version that is too old.
+The jar's declared minimum loader versions come from the same properties, so what the jar accepts is
+what was tested. Targets with `production_server=true` (NeoForge 20.2, 20.3 and 20.5, which ModDevGradle
+cannot set up, and the Quilt targets) only run the production tests.
 
 CI (`.github/workflows/build.yml`) runs one job per target. A release target's job:
 
 1. builds the target,
 2. runs its GameTests and checks that all of them passed (a test server that crashes, or registers
    no tests, does not count as a pass),
-3. checks the jar players install: correct metadata file, no test classes, mixins remapped
-   (Fabric) or a refmap present (Forge),
-4. does a Modrinth/CurseForge publish dry run.
+3. runs the production tests,
+4. checks the jar players install: correct metadata file, no test classes, mixins remapped
+   (Fabric) or a refmap present (Forge), translations for every language, the 1.21+ enchantment file,
+5. does a Modrinth/CurseForge publish dry run.
 
-A smoke target's job runs step 2 with the release jar.
+A smoke target's job runs steps 2 and 3 with the release jar.
