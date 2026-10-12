@@ -45,3 +45,4 @@ replay_*.log
 # kotlin
 
 .kotlin/
+attempt.log

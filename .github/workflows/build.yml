@@ -48,11 +48,11 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Build
-        run: ./gradlew ":${{ matrix.target }}:build" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:build"
 
       # The GameTests in the development environment, on the newest loader version.
       - name: GameTests
-        run: ./gradlew ":${{ matrix.target }}:runGametest" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:runGametest"
 
       # A target that registers no tests would otherwise pass silently.
       - name: Check that every GameTest ran
@@ -62,18 +62,18 @@ jobs:
       # the jar accepts: it must start and register the enchantment, and pass the GameTests where the
       # loader can run them on an installed server (gradle/production.gradle).
       - name: Production tests
-        run: ./gradlew ":${{ matrix.target }}:productionTest" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:productionTest"
 
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar
-        run: ./gradlew ":${{ matrix.target }}:checkReleaseJar" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:checkReleaseJar"
 
       - name: Publish dry run
-        run: ./gradlew ":${{ matrix.target }}:publishMods" ":${{ matrix.target }}:releaseInfo" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:publishMods" ":${{ matrix.target }}:releaseInfo"
 
       # The jars for the smoke test jobs and the release workflow.
       - name: Collect jars
-        run: ./gradlew ":${{ matrix.target }}:exportJars" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:exportJars"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: jars-${{ matrix.target }}
@@ -126,14 +126,14 @@ jobs:
 
       - name: GameTests
         if: steps.kind.outputs.dev == 'true'
-        run: ./gradlew ":${{ matrix.target }}:runGametest" "-Pprebuilt_jars=${{ runner.temp }}/jars" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:runGametest" "-Pprebuilt_jars=${{ runner.temp }}/jars"
 
       - name: Check that every GameTest ran
         if: steps.kind.outputs.dev == 'true'
         run: .github/scripts/check-gametests.sh "${{ matrix.target }}"
 
       - name: Production tests
-        run: ./gradlew ":${{ matrix.target }}:productionTest" "-Pprebuilt_jars=${{ runner.temp }}/jars" 2>&1 | tee -a gradle.log
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:productionTest" "-Pprebuilt_jars=${{ runner.temp }}/jars"
 
       - name: Summarize failure
         if: failure()

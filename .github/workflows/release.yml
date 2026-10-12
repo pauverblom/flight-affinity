@@ -87,7 +87,7 @@ jobs:
           path: ${{ runner.temp }}/jars
 
       - name: Check the jar
-        run: ./gradlew ":${{ matrix.target }}:checkReleaseJar" ":${{ matrix.target }}:releaseInfo" "-Pprebuilt_jars=${{ runner.temp }}/jars"
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:checkReleaseJar" ":${{ matrix.target }}:releaseInfo" "-Pprebuilt_jars=${{ runner.temp }}/jars"
 
       - name: Modrinth and CurseForge
         env:
@@ -104,6 +104,7 @@ jobs:
             echo "::error::MODRINTH_TOKEN and CURSEFORGE_TOKEN must be set in the 'release' environment."
             exit 1
           fi
+          # Not retried automatically: a retry after a partial upload could upload twice to CurseForge.
           ./gradlew ":${{ matrix.target }}:publishMods" "-Pprebuilt_jars=${{ runner.temp }}/jars"
           if [ "${{ inputs.publish }}" = true ]; then
             echo "Published $version" >> "$GITHUB_STEP_SUMMARY"
