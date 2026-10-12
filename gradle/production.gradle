@@ -141,6 +141,15 @@ def installServer = tasks.register('installProductionServer') {
             case 'quilt': installerArgs += ['install', 'server', mc, loaderVersion, '--download-server', "--install-dir=${serverDir.absolutePath}".toString()]; break
             default: installerArgs += ['--installServer', serverDir.absolutePath]
         }
+        // What a finished installation has. Installers can exit with 0 after a failed download (the
+        // Quilt installer does on a connection reset), so the exit code alone is not enough.
+        def installed = {
+            switch (serverLoader) {
+                case 'fabric': return new File(serverDir, 'fabric-server-launch.jar').isFile()
+                case 'quilt': return new File(serverDir, 'quilt-server-launch.jar').isFile()
+                default: return !project.fileTree(new File(serverDir, 'libraries')) { include '**/unix_args.txt' }.isEmpty()
+            }
+        }
         // Installers download Minecraft and libraries without retrying; a timeout should not fail CI.
         for (attempt in 1..3) {
             project.delete(serverDir)
@@ -151,9 +160,10 @@ def installServer = tasks.register('installProductionServer') {
                 args installerArgs
                 ignoreExitValue = true
             }
-            if (result.exitValue == 0) break
-            if (attempt == 3) throw new GradleException("The $serverLoader installer failed 3 times (exit code ${result.exitValue})")
-            logger.warn("The $serverLoader installer failed (exit code ${result.exitValue}); retrying in ${attempt * 20} s")
+            if (result.exitValue == 0 && installed()) break
+            def problem = result.exitValue == 0 ? 'left an incomplete server' : "failed (exit code ${result.exitValue})"
+            if (attempt == 3) throw new GradleException("The $serverLoader installer $problem 3 times")
+            logger.warn("The $serverLoader installer $problem; retrying in ${attempt * 20} s")
             Thread.sleep(attempt * 20_000L)
         }
         marker.text = "$serverLoader $loaderVersion\n"
