@@ -154,6 +154,11 @@ ranges. The older upload stays available for the versions it covered. A change t
 alters existing jars needs a new `mod_version`, since those jars would otherwise be republished under
 an unchanged version.
 
+Each upload's changelog starts with its Minecraft versions and loaders. Only one jar per release (the
+one for the newest Minecraft version) carries the changes from `CHANGELOG.md`, since Modrinth's
+changelog page lists every jar; the others link to the GitHub release. A jar that only widens one
+already published says that the mod itself did not change.
+
 If an upload fails half-way, run the workflow again: it continues with what is missing. (Modrinth decides
 what exists; if only the CurseForge upload of a jar failed, upload that file to CurseForge by hand.)
 

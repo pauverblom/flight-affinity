@@ -60,14 +60,57 @@ def modrinthProjectId = {
     return new groovy.json.JsonSlurper().parseText(body).id as String
 }.memoize()
 
+/*
+ * Modrinth's changelog page lists every version, and a release is one version per jar: only one jar
+ * per release carries the changes (the jar for the newest Minecraft version); the others link to the
+ * GitHub release. Each starts with the Minecraft versions and loaders it is for.
+ */
+def mcKey = { String v -> v.tokenize('.').collect { it as int } }
+def compareMc = { String a, String b ->
+    def x = mcKey(a), y = mcKey(b)
+    for (i in 0..<Math.max(x.size(), y.size())) {
+        def c = (x[i] ?: 0) <=> (y[i] ?: 0)
+        if (c != 0) return c
+    }
+    return 0
+}
+def carriesChangelog = {
+    def releases = rootProject.file('versions').listFiles().findAll { new File(it, 'gradle.properties').isFile() }.collect { dir ->
+        def props = new Properties()
+        new File(dir, 'gradle.properties').withInputStream { props.load(it) }
+        props.getProperty('smoke_of') ? null : [name: dir.name, newest: props.getProperty('mc_targets').trim().split(/\s+/).last()]
+    }.findAll()
+    def chosen = releases.max { a, b -> compareMc(a.newest, b.newest) ?: b.name <=> a.name }
+    return chosen.name == project.name
+}
+/*
+ * Whether this jar only widens one already published: Modrinth has a jar of the same mod version and
+ * loader for some of the same Minecraft versions (its narrower predecessor). Jars of one release are
+ * uploaded side by side, but never overlap.
+ */
+def onlyNewMinecraftVersions = {
+    if (!modrinthToken.isPresent()) return false
+    def (code, body) = httpGet("https://api.modrinth.com/v2/project/${modrinth_id}/version")
+    if (code != 200) throw new GradleException("Modrinth answered HTTP $code when listing versions: $body")
+    return (new groovy.json.JsonSlurper().parseText(body) as List).any {
+        (it.version_number as String).startsWith("${mod_version}+") && (it.loaders as List).contains(loader) &&
+                !(it.game_versions as List).intersect(mcTargets).isEmpty()
+    }
+}
+def uploadChangelog = {
+    def header = "Minecraft ${mcTargets.join(', ')} on ${loadersPublished.collect { loaderNames[it] }.join(', ')}."
+    def releaseUrl = "${mod_sources}/releases/tag/v${mod_version}"
+    if (onlyNewMinecraftVersions()) return "$header\n\nNo changes to the mod: this file adds support for more Minecraft versions. Changes in ${mod_version}: $releaseUrl"
+    if (!carriesChangelog()) return "$header\n\nChanges in ${mod_version}: $releaseUrl"
+    return "$header\n\n" + changelogFor(rootProject.file('CHANGELOG.md'), mod_version as String)
+}
+
 publishMods {
     file = publishedJar
     // Modrinth/CurseForge version numbers also name the loader, so each upload's number is unique.
     version = versionNumber
     displayName = "${mod_name} ${mod_version} for ${loadersPublished.collect { loaderNames[it] }.join('/')} ${mcDisplay}"
-    // The same mod version can be uploaded again later for more Minecraft versions; say which this is.
-    changelog = "Minecraft ${mcTargets.join(', ')} on ${loadersPublished.collect { loaderNames[it] }.join(', ')}.\n\n" +
-            changelogFor(rootProject.file('CHANGELOG.md'), mod_version as String)
+    changelog = providers.provider { uploadChangelog() }
     type = STABLE
     dryRun = dryRunOnly
 
