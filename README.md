@@ -31,13 +31,15 @@ One source tree builds every supported Minecraft version and loader with [Stonec
 
 ```
 src/                         shared code; version differences are //? comments
-versions/<mc>-<loader>/      one folder per build target
-  gradle.properties          dependency versions + mc_targets (versions the jar is published for)
+versions/<mc>-<loader>/      one folder per target
+  gradle.properties          dependency versions + mc_targets (versions the jar is published for),
+                             or smoke_of=<target> for a smoke test (see Tests)
 build.fabric.gradle          Fabric/Quilt (Loom; remapped before 26.1)
 build.neoforge.gradle        NeoForge (ModDevGradle)
 build.forge.gradle           Forge 1.20.1 (ModDevGradle legacyforge)
 gradle/common.gradle         shared setup, generates fabric.mod.json / mods.toml from mc_targets
 gradle/publish.gradle        Modrinth + CurseForge upload, release-jar checks
+gradle/production-smoke.gradle  smoke tests on an installed NeoForge server (see Tests)
 ```
 
 Version-specific code uses Stonecutter comments, for example:
@@ -68,7 +70,8 @@ works on 1.20.2, 1.20.3 and 1.20.4. The Forge 1.20.1 jar also runs on NeoForge 1
 | Run the GameTests for a target | `./gradlew :1.21.1-neoforge:runGametest` |
 | Check the jar players get | `./gradlew :1.21.1-neoforge:checkReleaseJar` |
 | Publish one target | `MODRINTH_TOKEN=... CURSEFORGE_TOKEN=... ./gradlew :1.21.1-neoforge:publishMods` (dry run without tokens) |
-| Support a new Minecraft version | Add `versions/<mc>-<loader>/gradle.properties`; CI picks it up automatically |
+| Support a new Minecraft version with a new jar | Add `versions/<mc>-<loader>/gradle.properties` with `mc_targets`; CI picks it up automatically |
+| Publish an existing jar for one more version | Add the version to that target's `mc_targets` and add a smoke target for it (the build tells you which one is missing) |
 
 ### Tests
 
@@ -76,7 +79,25 @@ works on 1.20.2, 1.20.3 and 1.20.4. The Forge 1.20.1 jar also runs on NeoForge 1
 registers it (see the `test/fabric`, `test/neoforge`, `test/forge` packages). When adding a test, also add
 `data/flightaffinity-test/test_instance/<name>.json` (used from 1.21.5).
 
-CI (`.github/workflows/build.yml`) runs one job per target. Each job:
+Every published Minecraft version is tested, not just the one a jar is compiled for. Two kinds of
+target make that happen:
+
+- A **release target** (`mc_targets=...`) builds a jar and runs the GameTests on the Minecraft version
+  it is compiled for.
+- A **smoke target** (`smoke_of=<release target>`) runs the same GameTests on another Minecraft
+  version, with the release target's jar installed in the `mods` folder exactly as a player installs it.
+  Only the tests are compiled; the mod itself comes from the jar. For example, `1.20.2-neoforge` tests
+  `flightaffinity-neoforge-1.3.0+mc1.20.2-1.20.4.jar` on Minecraft 1.20.2.
+
+`settings.gradle.kts` refuses to build if any version in an `mc_targets` list, or any loader in
+`also_runs_on`, has no smoke target, so a jar cannot be published for a version nobody tested.
+`<mc>-forge-neoforge` is the smoke target that runs the Forge 1.20.1 code on NeoForge 1.20.1.
+
+ModDevGradle cannot set up NeoForge 20.2, 20.3 or 20.5. Smoke targets for those (`production_server=true`)
+install a real NeoForge server with NeoForge's installer and run the release target's GameTests, packaged
+as a mod, on it.
+
+CI (`.github/workflows/build.yml`) runs one job per target. A release target's job:
 
 1. builds the target,
 2. runs its GameTests and checks that all of them passed (a test server that crashes, or registers
@@ -85,5 +106,4 @@ CI (`.github/workflows/build.yml`) runs one job per target. Each job:
    (Fabric) or a refmap present (Forge),
 4. does a Modrinth/CurseForge publish dry run.
 
-These GameTests run against the development build on the version each target is compiled for. They
-don't yet prove that a jar works on every other Minecraft version listed in its `mc_targets`.
+A smoke target's job runs step 2 with the release jar.
