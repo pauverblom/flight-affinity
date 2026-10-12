@@ -42,8 +42,8 @@ abstract class PlayerMixin extends LivingEntity {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;onGround()Z"),
             require = 1
     )
-    private boolean flightAffinity$ignoreAirbornePenalty(boolean onGround) {
-        return onGround || flightAffinity$hasEnchantment();
+    private boolean flightAffinity$ignoreAirbornePenalty(boolean grounded) {
+        return grounded || flightAffinity$hasEnchantment();
     }
 
     @Unique
