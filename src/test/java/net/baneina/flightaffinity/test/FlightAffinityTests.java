@@ -48,11 +48,25 @@ public final class FlightAffinityTests {
                 .riding(TestCompat.entityType("horse")).flightAffinity(true).run());
 
         ALL.put("unequip_affinity", MiningScenario::unequipRemovesBonus);
-        ALL.put("spawns_properly", TestCompat::enchantmentIsObtainable);
+        ALL.put("enchantment_obtainable", TestCompat::enchantmentIsObtainable);
         ALL.put("enchantment_definition", TestCompat::enchantmentDefinition);
     }
 
     private FlightAffinityTests() {}
+
+    //? if >=1.21.5 {
+    /**
+     * From 1.21.5 a test only runs if it also has a test_instance file; without one it would be
+     * skipped silently (the CI checks count the files). Called when the tests are registered.
+     */
+    public static void requireTestInstances() {
+        for (String name : ALL.keySet()) {
+            String path = "/data/" + NAMESPACE + "/test_instance/" + name + ".json";
+            if (FlightAffinityTests.class.getResource(path) == null)
+                throw new IllegalStateException("GameTest " + name + " has no " + path.substring(1));
+        }
+    }
+    //?}
 
     //? if <1.21.5 {
     /*// Before 1.21.5 tests are TestFunctions handed out by a @GameTestGenerator method.

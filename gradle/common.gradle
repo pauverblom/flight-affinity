@@ -41,8 +41,10 @@ tasks.withType(JavaCompile).configureEach {
     options.release = java_version as int
 }
 
-// Loader-specific classes live in packages named after their loader.
+// Loader-specific classes live in packages named after their loader. Forge uses an event instead of
+// the mixin (see FlightAffinityForge).
 def otherLoaders = ['fabric', 'neoforge', 'forge'] - loader
+def usesMixin = loader != 'forge'
 // Whole files that only exist for some Minecraft versions (smaller differences use //? comments).
 def versionedSources = [
         '**/enchantment/FlightAffinityEnchantment.java': '<1.21',
@@ -51,6 +53,7 @@ def versionedSources = [
 sourceSets.configureEach {
     java {
         otherLoaders.each { exclude "**/flightaffinity/$it/**", "**/flightaffinity/test/$it/**" }
+        if (!usesMixin) exclude '**/flightaffinity/mixin/**'
         versionedSources.each { pattern, predicate -> if (!stonecutter.eval(minecraft, predicate)) exclude pattern }
     }
 }
@@ -87,8 +90,6 @@ def metadata = [
         mod_issues     : mod_issues,
         java_version   : java_version,
         loader         : loader,
-        // Forge 1.20.1 reobfuscates through a mixin refmap; Loom remaps mixins without one.
-        refmap         : loader == 'forge',
         mixin_compat   : mcAtLeast('1.20.5') ? 'JAVA_21' : 'JAVA_17',
         pack_format    : project.findProperty('pack_format') ?: '',
         fabric_mc_range: mcMin == mcMax ? mcMin : ">=$mcMin <=$mcMax",
@@ -111,6 +112,7 @@ tasks.withType(ProcessResources).configureEach {
 
     if (loader != 'fabric') exclude 'fabric.mod.json'
     if (loader == 'fabric') exclude 'META-INF/mods.toml'
+    if (!usesMixin) exclude '*.mixins.json'
     if (loader == 'neoforge' && mcAtLeast('1.20.5')) {
         filesMatching('META-INF/mods.toml') { path = 'META-INF/neoforge.mods.toml' }
     }

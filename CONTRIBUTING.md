@@ -52,6 +52,8 @@ code stops working on the next version:
 | NeoForge | 1.20.2-1.20.4, 1.20.5-1.20.6, 1.21-1.21.10, 1.21.11-26.3 | the same first two; NeoForge runs on Mojang's names, so Mojang's rename of `ResourceLocation` to `Identifier` in 1.21.11 needs another jar |
 | Forge | 1.20.1 (also runs on NeoForge 1.20.1) | Forge is only built for 1.20.1 |
 
+On Forge the mod uses Forge's `BreakSpeed` event instead of the mixin (see `FlightAffinityForge`).
+
 Within a range, compiled code must only call what exists on every version of it. The mod looks up its
 enchantment through `HolderLookup.Provider`, which kept its methods from 1.21 on (`RegistryAccess`'s
 were renamed in 1.21.2), and the GameTests, compiled for each version, call the mod only for what
@@ -114,7 +116,7 @@ CI (`.github/workflows/build.yml`) runs one job per target, in two stages. A rel
    no tests, does not count as a pass),
 3. runs the production tests,
 4. checks the jar players install: correct metadata file, no test classes, mixins remapped
-   (Fabric) or a refmap present (Forge), translations for every language, the 1.21+ enchantment file,
+   (Fabric) or SRG names (Forge), translations for every language, the 1.21+ enchantment file,
 5. does a Modrinth/CurseForge publish dry run,
 6. uploads its jars (`exportJars`).
 
@@ -163,7 +165,8 @@ Fabric API or NeoForge has builds for it, it does what you would do by hand: add
 `mc_targets` of the newest jar before it, creates its smoke target, and runs the GameTests and
 production tests. Then it:
 
-- pushes the additions that passed to the branch `compat/new-minecraft-versions`;
+- pushes the additions that passed to the branch `compat/new-minecraft-versions` (rewritten each week,
+  so don't add commits to it) and starts CI on it;
 - opens an issue *Minecraft &lt;version&gt;: add support*, assigned to the repository owner, saying per loader
   whether the existing jar works, which builds are still missing, or what failed (then a new target
   with code changes is needed). The issue is updated, with a comment, when that changes.

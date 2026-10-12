@@ -36,5 +36,5 @@ works on 1.20.2, 1.20.3 and 1.20.4. The Forge 1.20.1 jar also runs on NeoForge 1
 ## Contributing
 
 The mod is built for every supported Minecraft version and loader from one source tree; see
-[CONTRIBUTING.md](CONTRIBUTING.md) for how it is organised, tested and released. Bugs and requests go to the
+[CONTRIBUTING.md](https://github.com/pauverblom/flight-affinity/blob/main/CONTRIBUTING.md) for how it is organised, tested and released. Bugs and requests go to the
 [issue tracker](https://github.com/pauverblom/flight-affinity/issues).

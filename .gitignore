@@ -45,4 +45,9 @@ replay_*.log
 # kotlin
 
 .kotlin/
+
+# CI scripts
+
+gradle.log
 attempt.log
+__pycache__/

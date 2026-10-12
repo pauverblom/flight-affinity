@@ -1,3 +1,4 @@
 {
-  "enchantment.flightaffinity.flight_affinity": "Afinidad de Vuelo"
+  "enchantment.flightaffinity.flight_affinity": "Afinidad de Vuelo",
+  "enchantment.flightaffinity.flight_affinity.desc": "Elimina la penalización de velocidad de minado por no estar sobre el suelo."
 }

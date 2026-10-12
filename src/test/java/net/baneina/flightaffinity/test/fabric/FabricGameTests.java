@@ -18,6 +18,7 @@ import java.util.Collection;
 public class FabricGameTests implements ModInitializer {
     @Override
     public void onInitialize() {
+        FlightAffinityTests.requireTestInstances();
         FlightAffinityTests.ALL.forEach((name, test) -> Registry.register(BuiltInRegistries.TEST_FUNCTION,
                 TestCompat.id(FlightAffinityTests.NAMESPACE, name), test));
     }

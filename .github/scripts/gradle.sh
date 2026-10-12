@@ -3,7 +3,7 @@
 # the network (a repository answering 5xx or 429, timeouts, resets), it is retried up to twice, after
 # a pause; any other failure (a test, a compile error) fails at once.
 set -uo pipefail
-network_error='status code (5[0-9][0-9]|429)|response code: (5[0-9][0-9]|429)|Read timed out|Connect(ion)? timed out|Connection reset|Remote host terminated the handshake|Could not GET .* Bad Gateway'
+network_error='status code (5[0-9][0-9]|429)|response code: (5[0-9][0-9]|429)|answered HTTP (5[0-9][0-9]|429)|Read timed out|Connect(ion)? timed out|Connection reset|Remote host terminated the handshake|Could not GET .* Bad Gateway'
 for attempt in 1 2 3; do
   ./gradlew "$@" 2>&1 | tee attempt.log
   status=${PIPESTATUS[0]}

@@ -140,14 +140,20 @@ public final class TestCompat {
         helper.succeed();
     }
 
-    /** The enchantment exists and can be found in the enchanting table, on loot and from villagers. */
+    /**
+     * The enchantment exists and is a normal (not treasure) enchantment: found in the enchanting table,
+     * in loot, from villagers, and on the armour of mobs and of villager trades, as on 1.20.
+     */
     static void enchantmentIsObtainable(GameTestHelper helper) {
         //? if >=1.21 {
-        Player player = mockPlayer(helper);
-        Holder<Enchantment> holder = enchantment(player, ModEnchantments.FLIGHT_AFFINITY);
-        if (!holder.is(EnchantmentTags.IN_ENCHANTING_TABLE)) { fail(helper, "missing from #in_enchanting_table"); return; }
-        if (!holder.is(EnchantmentTags.ON_RANDOM_LOOT)) { fail(helper, "missing from #on_random_loot"); return; }
-        if (!holder.is(EnchantmentTags.TRADEABLE)) { fail(helper, "missing from #tradeable"); return; }
+        Holder<Enchantment> holder = enchantment(mockPlayer(helper), ModEnchantments.FLIGHT_AFFINITY);
+        var expected = java.util.List.of(EnchantmentTags.NON_TREASURE, EnchantmentTags.IN_ENCHANTING_TABLE,
+                EnchantmentTags.ON_RANDOM_LOOT, EnchantmentTags.TRADEABLE, EnchantmentTags.ON_MOB_SPAWN_EQUIPMENT,
+                EnchantmentTags.ON_TRADED_EQUIPMENT);
+        for (var tag : expected) {
+            if (!holder.is(tag)) { fail(helper, "missing from " + tag); return; }
+        }
+        if (holder.is(EnchantmentTags.TREASURE)) { fail(helper, "in #treasure"); return; }
         //?} else {
         /*var enchantment = ModEnchantments.flightAffinity.get();
         var key = enchantment == null ? null : BuiltInRegistries.ENCHANTMENT.getKey(enchantment);

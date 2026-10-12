@@ -18,6 +18,7 @@ Option --forget <minecraft version>: first remove that version from the working 
 targets, smoke targets and mc_targets entries), to rehearse its release. Used by the workflow when
 the check itself changes.
 """
+import base64
 import hashlib
 import io
 import json
@@ -35,6 +36,9 @@ VERSIONS = ROOT / 'versions'
 BRANCH = 'compat/new-minecraft-versions'
 LOADERS = ['fabric', 'neoforge']  # Forge is only built for 1.20.1.
 USER_AGENT = 'pauverblom/flight-affinity (weekly Minecraft version check)'
+# The GitHub token is only handed to gh and to the final git push, not to Gradle and the game servers
+# it starts (they run freshly published loader builds).
+TOKEN = os.environ.pop('GH_TOKEN', None)
 
 
 def fetch(url):
@@ -121,7 +125,11 @@ def fabric_builds(minecraft):
         required = json.loads(z.read('fabric.mod.json'))['depends'].get('fabricloader', '')
     loaders = json.loads(fetch('https://meta.fabricmc.net/v2/versions/loader'))
     latest = next(l['version'] for l in loaders if l.get('stable'))
-    required_min = re.sub(r'^[^0-9]*', '', required) or latest
+    # Usually ">=0.17.2"; a list of alternatives is also allowed by fabric.mod.json.
+    if isinstance(required, list):
+        required = required[0] if required else ''
+    found = re.search(r'\d+(\.\d+)+', required)
+    required_min = found.group(0) if found else latest
     return {'fabric_api': api, 'fabric_loader': latest, 'required_loader': required_min}, None
 
 
@@ -155,7 +163,10 @@ def plan():
         for minecraft in releases:
             if version_key(minecraft) <= version_key(oldest) or minecraft in covered:
                 continue
-            base = [t for t in releases_of_loader if version_key(t[1]) < version_key(minecraft)][-1]
+            before = [t for t in releases_of_loader if version_key(t[1]) < version_key(minecraft)]
+            if not before:
+                continue  # Older than every jar's compile version: not something a new release does.
+            base = before[-1]
             entry = {'minecraft': minecraft, 'loader': loader, 'release_target': base[0],
                      'smoke_target': f'{minecraft}-{loader}'}
             # Loaders the jar is also published for need the version too (Quilt for Fabric jars).
@@ -210,11 +221,18 @@ def apply(entry):
             f'quilt_loader={builds["quilt_loader"]}', f'fabric_api={builds["fabric_api"]}']) + '\n')
 
 
+NETWORK_ERROR = re.compile(r'status code (5\d\d|429)|response code: (5\d\d|429)|answered HTTP (5\d\d|429)|'
+                           r'Read timed out|Connect(ion)? timed out|Connection reset|Remote host terminated the handshake')
+
+
 def gradle(*tasks):
-    result = subprocess.run(['./gradlew', '--continue', *tasks], cwd=ROOT, capture_output=True, text=True)
+    """Runs Gradle (retrying network failures, see gradle.sh); returns (passed, log excerpt, network failure)."""
+    result = subprocess.run([str(ROOT / '.github/scripts/gradle.sh'), '--continue', *tasks], cwd=ROOT,
+                            capture_output=True, text=True)
     output = result.stdout + result.stderr
     errors = [l for l in output.splitlines() if re.search(r'What went wrong|FAILED|> .*(failed|passed|not )', l)]
-    return result.returncode == 0, '\n'.join(errors[-25:]) or output[-3000:]
+    passed = result.returncode == 0
+    return passed, '\n'.join(errors[-25:]) or output[-3000:], not passed and bool(NETWORK_ERROR.search(output))
 
 
 def test(entry):
@@ -228,10 +246,28 @@ def git(*args):
 
 
 def gh(*args):
-    return subprocess.run(['gh', *args], cwd=ROOT, check=True, capture_output=True, text=True).stdout
+    return subprocess.run(['gh', *args], cwd=ROOT, check=True, capture_output=True, text=True,
+                          env={**os.environ, 'GH_TOKEN': TOKEN or ''}).stdout
+
+
+def push_branch():
+    """Pushes BRANCH unless it already has this content; returns whether it was pushed."""
+    exists = subprocess.run(['git', 'ls-remote', '--exit-code', '--heads', 'origin', BRANCH], cwd=ROOT,
+                            capture_output=True).returncode == 0
+    if exists:
+        git('fetch', '-q', 'origin', BRANCH)
+        if git('rev-parse', f'origin/{BRANCH}^{{tree}}') == git('rev-parse', 'HEAD^{tree}'):
+            return False
+    # The workflow checks out without persisted credentials (see TOKEN).
+    auth = base64.b64encode(f'x-access-token:{TOKEN}'.encode()).decode()
+    git('-c', f'http.https://github.com/.extraheader=AUTHORIZATION: basic {auth}', 'push', '--force', 'origin', BRANCH)
+    return True
 
 
 def forget(minecraft):
+    for name, props in targets().items():
+        if name.split('-')[0] == minecraft and 'smoke_of' not in props:
+            sys.exit(f'{name} builds a jar; only versions that are smoke targets can be forgotten')
     for name, props in targets().items():
         directory = VERSIONS / name
         if name.split('-')[0] == minecraft:
@@ -287,8 +323,9 @@ def report(minecraft, entries, branch_pushed):
 def main():
     args = sys.argv[1:]
     mode = args[0] if args else 'plan'
-    if '--forget' in args:
-        forget(args[args.index('--forget') + 1])
+    forgotten = args[args.index('--forget') + 1] if '--forget' in args else None
+    if forgotten:
+        forget(forgotten)
     entries = plan()
     if not entries:
         print('Every Minecraft release is covered.')
@@ -303,7 +340,10 @@ def main():
         apply(e)
     for e in testable:
         print(f'Testing {e["smoke_target"]}...', flush=True)
-        e['passed'], e['log'] = test(e)
+        e['passed'], e['log'], network = test(e)
+        if network:
+            # Not the jar's fault: report it as waiting and try again next week.
+            e['missing'] = 'the test could not download what it needs (network errors); trying again next week'
         print('  passed' if e['passed'] else '  failed\n' + e['log'], flush=True)
 
     if mode == 'try':
@@ -312,6 +352,10 @@ def main():
             print(f'\n--- Issue "Minecraft {minecraft}: add support" would say:\n')
             print(issue_body(minecraft, of_version, os.environ.get('GITHUB_REPOSITORY', 'owner/repo'), 'main',
                              any(e.get('passed') for e in of_version)))
+        # A rehearsal must have tested the forgotten version on every loader, not skipped it.
+        rehearsed = [e for e in entries if e['minecraft'] == forgotten]
+        if forgotten and len([e for e in rehearsed if e.get('passed')]) != len(LOADERS):
+            sys.exit(f'Rehearsal of {forgotten}: not added and tested on every loader')
         sys.exit(0 if all(e.get('passed') for e in testable) else 1)
 
     # Keep only the changes that passed.
@@ -328,7 +372,9 @@ def main():
         git('add', 'versions')
         versions = ', '.join(sorted({e['minecraft'] for e in passed}, key=version_key))
         git('commit', '-m', f'Support Minecraft {versions} with the existing jars\n\nAdded by the weekly Minecraft version check.')
-        git('push', '--force', 'origin', BRANCH)
+        if push_branch():
+            # Pushes with the workflow's token start no workflows; start CI on the branch explicitly.
+            gh('workflow', 'run', 'build.yml', '--ref', BRANCH)
         branch_pushed = True
 
     for minecraft in sorted({e['minecraft'] for e in entries}, key=version_key):

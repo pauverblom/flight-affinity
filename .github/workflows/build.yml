@@ -90,8 +90,9 @@ jobs:
       - name: Check release jar
         run: .github/scripts/gradle.sh ":${{ matrix.target }}:checkReleaseJar"
 
+      # What would be uploaded (no tokens, nothing is sent; the release workflow checks Modrinth).
       - name: Publish dry run
-        run: .github/scripts/gradle.sh ":${{ matrix.target }}:publishMods" ":${{ matrix.target }}:releaseInfo"
+        run: .github/scripts/gradle.sh ":${{ matrix.target }}:publishMods"
 
       # The jars for the smoke test jobs and the release workflow.
       - name: Collect jars

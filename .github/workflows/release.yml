@@ -38,9 +38,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Check the mod version and changelog
+      - name: Check the branch, mod version and changelog
         id: version
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          PUBLISH: ${{ inputs.publish }}
         run: |
+          # Only what is on the default branch gets released (and tagged); dry runs work anywhere.
+          if [ "$PUBLISH" = true ] && [ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "::error::Releases are published from $DEFAULT_BRANCH; this run is on $GITHUB_REF."
+            exit 1
+          fi
           version=$(grep -oP '^mod_version=\K.*' gradle.properties)
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Mod version $version" >> "$GITHUB_STEP_SUMMARY"
@@ -50,8 +58,9 @@ jobs:
             echo "::error::CHANGELOG.md has unreleased changes. Move them to a section for a new mod_version (and bump mod_version in gradle.properties) before releasing."
             exit 1
           fi
-          if ! grep -q "^## \[$version\]" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no section for $version."
+          newest=$(grep -oP '^## \[\K[^]]+(?=\])' CHANGELOG.md | grep -v '^Unreleased$' | head -1)
+          if [ "$newest" != "$version" ]; then
+            echo "::error::The newest section of CHANGELOG.md is [$newest], but mod_version is $version."
             exit 1
           fi
 

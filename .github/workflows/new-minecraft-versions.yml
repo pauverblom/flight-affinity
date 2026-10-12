@@ -11,7 +11,7 @@ on:
     - cron: '23 7 * * 1'
   workflow_dispatch:
   # Changes to the check itself: rehearse the release of 26.3 (removed from the working tree, then
-  # found, added to the 26.2 jars and tested), without pushing a branch or opening issues.
+  # found, added back to the jars before it and tested), without pushing a branch or opening issues.
   push:
     paths:
       - .github/scripts/new_minecraft_versions.py
@@ -25,9 +25,12 @@ defaults:
   run:
     shell: bash
 
+# The script hands the token only to gh and its final git push, not to Gradle (see TOKEN in the script).
 permissions:
   contents: write
   issues: write
+  # Starts CI on the branch it pushes (pushes made with this token start no workflows).
+  actions: write
 
 jobs:
   check:
@@ -35,6 +38,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
 
       - name: Check

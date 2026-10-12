@@ -1,6 +1,6 @@
 {
     "type": "minecraft:function",
-    "function": "flightaffinity-test:spawns_properly",
+    "function": "flightaffinity-test:enchantment_obtainable",
     "environment": "minecraft:default",
     "structure": "minecraft:empty",
     "max_ticks": 100,

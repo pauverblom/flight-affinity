@@ -37,20 +37,6 @@ legacyForge {
     }
 }
 
-mixin {
-    add sourceSets.main, "${mod_id}.refmap.json"
-    config "${mod_id}.mixins.json"
-}
-
-dependencies {
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-}
-
-tasks.named('jar', Jar) {
-    // Forge 1.20.1 finds mixin configs through the manifest, not mods.toml.
-    manifest.attributes('MixinConfigs': "${mod_id}.mixins.json")
-}
-
 // The jar users install: reobfuscated to SRG names.
 ext.releaseJar = tasks.named('reobfJar')
 // The GameTests as a mod for production servers, reobfuscated like the release jar.

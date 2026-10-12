@@ -18,6 +18,7 @@ import java.util.Collection;
 public class NeoForgeGameTests {
     static void register(RegisterEvent event) {
         if (!event.getRegistryKey().equals(BuiltInRegistries.TEST_FUNCTION.key())) return;
+        FlightAffinityTests.requireTestInstances();
         FlightAffinityTests.ALL.forEach((name, test) -> event.register(BuiltInRegistries.TEST_FUNCTION.key(),
                 TestCompat.id(FlightAffinityTests.NAMESPACE, name), () -> test));
     }

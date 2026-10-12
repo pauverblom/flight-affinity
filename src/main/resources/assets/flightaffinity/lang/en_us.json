@@ -1,3 +1,4 @@
 {
-  "enchantment.flightaffinity.flight_affinity": "Flight Affinity"
+  "enchantment.flightaffinity.flight_affinity": "Flight Affinity",
+  "enchantment.flightaffinity.flight_affinity.desc": "Removes the mining speed penalty for not standing on the ground."
 }

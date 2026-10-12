@@ -74,7 +74,8 @@ publishMods {
     loadersPublished.each { modLoaders.add(it) }
 
     modrinth {
-        projectId = providers.provider { modrinthProjectId() }
+        // Without a token (CI) the upload is a dry run; the slug keeps CI from depending on Modrinth.
+        projectId = providers.provider { modrinthToken.isPresent() ? modrinthProjectId() : modrinth_id as String }
         accessToken = modrinthToken
         minecraftVersions.addAll(mcTargets)
         if (loader == 'fabric') requires('fabric-api')
@@ -84,7 +85,14 @@ publishMods {
         projectId = curseforge_id
         accessToken = curseforgeToken
         minecraftVersions.addAll(mcTargets)
-        javaVersions.add(JavaVersion.toVersion(java_version))
+        // The Java versions players run the jar on: those of its Minecraft versions (21 and 25 for a
+        // 1.21.11-26.3 jar compiled for Java 21).
+        mcTargets.collect { mc ->
+            def props = new Properties()
+            def file = rootProject.file("versions/${mc}-${loader}/gradle.properties")
+            if (file.isFile()) file.withInputStream { props.load(it) }
+            props.getProperty('java_version', java_version as String)
+        }.unique().each { javaVersions.add(JavaVersion.toVersion(it)) }
         client = true
         server = true
         if (loader == 'fabric') requires('fabric-api')
@@ -96,6 +104,9 @@ publishMods {
 tasks.matching { it.name in ['publishModrinth', 'publishCurseforge'] }.configureEach {
     onlyIf("$versionNumber is not on Modrinth yet") { dryRunOnly || !modrinthHasVersion() }
 }
+// Modrinth first: if its upload fails, the build stops before CurseForge, so a re-run cannot upload
+// a jar to CurseForge twice. (If CurseForge fails after Modrinth, upload that file to CurseForge by hand.)
+tasks.matching { it.name == 'publishCurseforge' }.configureEach { mustRunAfter 'publishModrinth' }
 
 // For the release workflow: the jar, its version number and whether it is already published.
 tasks.register('releaseInfo') {
@@ -143,22 +154,27 @@ tasks.register('checkPublishing') {
 }
 
 /*
- * Sanity checks on the jar players install. CI runs this because the GameTests only exercise the
- * development build: they cannot notice a jar that was never remapped or lost its mixin refmap.
+ * Sanity checks on the jar players install, naming the problem where a production test would only
+ * fail: a jar that was never remapped, metadata or translations missing, test classes included.
  */
 tasks.register('checkReleaseJar') {
     group = 'verification'
     description = 'Checks the release jar contents (metadata, mixins, translations, data, no test classes).'
     def jarFile = publishedJar
-    def expectRefmap = loader == 'forge'
+    // Forge uses an event instead of the mixin (see FlightAffinityForge), and runs on SRG names.
+    def expectMixin = loader != 'forge'
+    def expectSrg = loader == 'forge'
     // Loom rewrites the mixin's target names directly in the class when remapping.
     def expectIntermediary = loader == 'fabric' && !mcAtLeast('26.1')
     def metadataFile = loader == 'fabric' ? 'fabric.mod.json'
             : (loader == 'neoforge' && mcAtLeast('1.20.5')) ? 'META-INF/neoforge.mods.toml' : 'META-INF/mods.toml'
     def modId = mod_id
     def expectDataDrivenEnchantment = mcAtLeast('1.21')
+    def number = versionNumber
     inputs.file(jarFile)
     doLast {
+        // Modrinth rejects version numbers longer than 32 characters.
+        if (number.length() > 32) throw new GradleException("Version number $number is longer than Modrinth's 32 characters")
         def zip = new java.util.zip.ZipFile(jarFile.get().asFile)
         try {
             def text = { path -> def e = zip.getEntry(path as String); e == null ? null : zip.getInputStream(e).text }
@@ -166,14 +182,13 @@ tasks.register('checkReleaseJar') {
             if (text(metadataFile) == null) problems << "missing $metadataFile"
             if (zip.entries().toList().any { it.name.contains('/flightaffinity/test/') }) problems << 'contains test classes'
             def mixins = text("${modId}.mixins.json")
-            if (mixins == null) problems << 'missing mixin config'
-            def refmap = text("${modId}.refmap.json")
-            if (expectRefmap) {
-                if (refmap == null) problems << 'missing mixin refmap'
-                else if (!refmap.contains('m_')) problems << "refmap has no SRG names: $refmap"
-                if (mixins != null && !mixins.contains('refmap')) problems << 'mixin config does not reference the refmap'
-            } else if (mixins != null && mixins.contains('refmap')) {
-                problems << 'mixin config references a refmap that is not needed'
+            if (expectMixin && mixins == null) problems << 'missing mixin config'
+            if (!expectMixin && mixins != null) problems << 'contains a mixin config, which this loader does not use'
+            if (mixins != null && mixins.contains('refmap')) problems << 'mixin config references a refmap that is not needed'
+            if (expectSrg) {
+                def entry = zip.getEntry('net/baneina/flightaffinity/forge/FlightAffinityForge.class')
+                def bytes = entry == null ? '' : new String(zip.getInputStream(entry).bytes, 'ISO-8859-1')
+                if (bytes.contains('onGround') || !(bytes =~ /m_\d+_/)) problems << 'the Forge entry point is not reobfuscated to SRG names'
             }
             // Every language must name the enchantment, under the key the game looks up
             // ("enchantment.<namespace>.<path>", also what the 1.21+ enchantment file refers to).
