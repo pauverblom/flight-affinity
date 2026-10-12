@@ -9,6 +9,7 @@ dependencies {
         implementation "net.fabricmc:fabric-loader:${fabric_loader}"
         // The mod itself does not use Fabric API; it is only needed to run GameTests.
         localRuntime "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
+        testCompileOnly "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
     } else {
         mappings loom.officialMojangMappings()
         modImplementation "net.fabricmc:fabric-loader:${fabric_loader}"
