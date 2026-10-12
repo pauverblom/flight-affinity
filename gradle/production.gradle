@@ -11,7 +11,8 @@
  *  - productionTest: both.
  *
  * The server runs the oldest loader version the jar accepts (fabric_loader_min, neoforge_min,
- * forge_min, quilt_loader); the development GameTests run the newest.
+ * forge_min, quilt_loader); the development GameTests run the newest. On Fabric, a smoke target
+ * whose Minecraft version's Fabric API needs a newer loader than the jar sets its own fabric_loader_min.
  *
  * Targets with production_server=true only have these tasks (no development environment).
  */
@@ -34,7 +35,7 @@ def releaseProps = new Properties()
 rootProject.file("versions/$releaseName/gradle.properties").withInputStream { releaseProps.load(it) }
 
 def loaderVersion = [
-        fabric  : { releaseProps.getProperty('fabric_loader_min') },
+        fabric  : { project.findProperty('fabric_loader_min') ?: releaseProps.getProperty('fabric_loader_min') },
         quilt   : { project.property('quilt_loader') },
         neoforge: { project.findProperty('neoforge_min') ?: project.property('neoforge') },
         forge   : { project.findProperty('forge_min') ?: project.property('forge') },

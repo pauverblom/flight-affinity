@@ -30,15 +30,32 @@ gradle/production.gradle     production tests on servers installed by each loade
 Version-specific code uses Stonecutter comments, for example:
 
 ```java
-//? if >=1.21.2 {
-return registryAccess().lookupOrThrow(Registries.ENCHANTMENT)...;
+//? if >=1.21 {
+return Identifier.fromNamespaceAndPath(namespace, path);
 //?} else {
-/*return registryAccess().registryOrThrow(Registries.ENCHANTMENT)...;
+/*return new Identifier(namespace, path);
 *///?}
 ```
 
 `fabric`, `neoforge` and `forge` work as conditions too, and classes in a `fabric`/`neoforge`/`forge`
 package are only compiled for that loader.
+
+## Which Minecraft versions share a jar
+
+A jar is compiled for one Minecraft version (its release target's) and published for every version in
+its `mc_targets`, each of which is tested with that jar. A new jar is only needed where the compiled
+code stops working on the next version:
+
+| Loader | Jars (Minecraft versions) | Why they are separate |
+|---|---|---|
+| Fabric, Quilt | 1.20-1.20.4, 1.20.5-1.20.6, 1.21-1.21.11, 26.1-26.3 | 1.20.5 changed the `Enchantment` constructor; 1.21 made enchantments data-driven; from 26.1 Minecraft is unobfuscated, so jars use Mojang's names instead of intermediary ones |
+| NeoForge | 1.20.2-1.20.4, 1.20.5-1.20.6, 1.21-1.21.10, 1.21.11-26.3 | the same first two; NeoForge runs on Mojang's names, so Mojang's rename of `ResourceLocation` to `Identifier` in 1.21.11 needs another jar |
+| Forge | 1.20.1 (also runs on NeoForge 1.20.1) | Forge is only built for 1.20.1 |
+
+Within a range, compiled code must only call what exists on every version of it. The mod looks up its
+enchantment through `HolderLookup.Provider`, which kept its methods from 1.21 on (`RegistryAccess`'s
+were renamed in 1.21.2), and the GameTests, compiled for each version, call the mod only for what
+they test (`TestCompat.id` instead of `FlightAffinity.id`). The smoke tests catch anything else.
 
 ## Everyday tasks
 
@@ -85,7 +102,9 @@ accepts (`fabric_loader_min`, `neoforge_min`, `forge_min`; the development GameT
 This catches what a development environment hides: wrong metadata, a jar that was not remapped, a missing
 dependency (Fabric API loads the mod's data and translations), a loader version that is too old.
 The jar's declared minimum loader versions come from the same properties, so what the jar accepts is
-what was tested. Targets with `production_server=true` (NeoForge 20.2, 20.3 and 20.5, which ModDevGradle
+what was tested: on Fabric `fabric_loader_min` of the release target, and on NeoForge `neoforge_min` of
+the jar's oldest Minecraft version. A Fabric smoke target whose Minecraft version's Fabric API needs a
+newer Fabric Loader sets its own `fabric_loader_min`, which its production tests use instead. Targets with `production_server=true` (NeoForge 20.2, 20.3 and 20.5, which ModDevGradle
 cannot set up, and the Quilt targets) only run the production tests.
 
 CI (`.github/workflows/build.yml`) runs one job per target, in two stages. A release target's job:

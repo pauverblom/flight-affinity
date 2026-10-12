@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 //?}
 //? if >=1.21 {
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 //?} else {
 /*import net.minecraft.world.item.enchantment.Enchantment;
@@ -65,17 +66,15 @@ abstract class PlayerMixin extends LivingEntity {
 
     @Unique
     private boolean flightAffinity$hasEnchantment() {
-        //? if >=1.21.2 {
-        return this.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
+        //? if >=1.21 {
+        // Looked up through HolderLookup.Provider, whose methods are the same on every version from
+        // 1.21 on, so that one jar runs on all of them (RegistryAccess's own were renamed in 1.21.2).
+        HolderLookup.Provider registries = this.level().registryAccess();
+        return registries.lookupOrThrow(Registries.ENCHANTMENT)
                 .get(ModEnchantments.FLIGHT_AFFINITY)
                 .map(enchantment -> EnchantmentHelper.getEnchantmentLevel(enchantment, this) > 0)
                 .orElse(false);
-        //?} else if >=1.21 {
-        /*return this.level().registryAccess().registryOrThrow(Registries.ENCHANTMENT)
-                .getHolder(ModEnchantments.FLIGHT_AFFINITY)
-                .map(enchantment -> EnchantmentHelper.getEnchantmentLevel(enchantment, this) > 0)
-                .orElse(false);
-        *///?} else {
+        //?} else {
         /*Enchantment enchantment = ModEnchantments.flightAffinity.get();
         return enchantment != null && EnchantmentHelper.getEnchantmentLevel(enchantment, this) > 0;
         *///?}

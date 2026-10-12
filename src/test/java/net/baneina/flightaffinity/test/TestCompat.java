@@ -1,9 +1,9 @@
 package net.baneina.flightaffinity.test;
 
-import net.baneina.flightaffinity.FlightAffinity;
 import net.baneina.flightaffinity.enchantment.ModEnchantments;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
@@ -12,6 +12,9 @@ import net.minecraft.world.item.enchantment.Enchantments;
 //? if >=1.20.5 {
 import net.minecraft.world.level.GameType;
 //?}
+//? if <1.21 {
+/*import net.baneina.flightaffinity.FlightAffinity;
+*///?}
 //? if >=1.21 {
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -27,8 +30,19 @@ import net.minecraft.network.chat.Component;
 //?}
 
 /** The Minecraft APIs the tests use that changed between versions, in one place. */
-final class TestCompat {
+public final class TestCompat {
     private TestCompat() {}
+
+    // The tests are compiled for each Minecraft version but run with a jar built for another one, so
+    // they only call the mod for what they test. FlightAffinity.id would tie them to the id class of
+    // the version the jar was built for, which Mojang renamed in 1.21.11.
+    public static Identifier id(String namespace, String path) {
+        //? if >=1.21 {
+        return Identifier.fromNamespaceAndPath(namespace, path);
+        //?} else {
+        /*return new Identifier(namespace, path);
+        *///?}
+    }
 
     static void fail(GameTestHelper helper, String message) {
         //? if >=1.21.5 {
@@ -49,9 +63,9 @@ final class TestCompat {
     // Looked up by id: 26.2 removed constants such as EntityType.MINECART.
     static EntityType<?> entityType(String path) {
         //? if >=1.21.2 {
-        return BuiltInRegistries.ENTITY_TYPE.getValue(FlightAffinity.id("minecraft", path));
+        return BuiltInRegistries.ENTITY_TYPE.getValue(id("minecraft", path));
         //?} else {
-        /*return BuiltInRegistries.ENTITY_TYPE.get(FlightAffinity.id("minecraft", path));
+        /*return BuiltInRegistries.ENTITY_TYPE.get(id("minecraft", path));
         *///?}
     }
 
@@ -94,7 +108,7 @@ final class TestCompat {
         //?} else {
         /*var enchantment = ModEnchantments.flightAffinity.get();
         var key = enchantment == null ? null : BuiltInRegistries.ENCHANTMENT.getKey(enchantment);
-        if (!FlightAffinity.id("flight_affinity").equals(key)) { fail(helper, "registered as " + key); return; }
+        if (!id(FlightAffinity.MOD_ID, "flight_affinity").equals(key)) { fail(helper, "registered as " + key); return; }
         if (!enchantment.isDiscoverable() || !enchantment.isTradeable() || enchantment.isTreasureOnly()) {
             fail(helper, "not obtainable from the enchanting table, loot and villagers");
             return;

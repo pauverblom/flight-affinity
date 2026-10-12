@@ -86,9 +86,20 @@ def release_targets(loader):
     return sorted(result, key=lambda t: version_key(t[1]))
 
 
+def version_manifest():
+    if not hasattr(version_manifest, 'cached'):
+        version_manifest.cached = json.loads(fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'))
+    return version_manifest.cached
+
+
 def minecraft_releases():
-    manifest = json.loads(fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'))
-    return sorted((v['id'] for v in manifest['versions'] if v['type'] == 'release'), key=version_key)
+    return sorted((v['id'] for v in version_manifest()['versions'] if v['type'] == 'release'), key=version_key)
+
+
+def java_version(minecraft):
+    """The Java version a Minecraft version runs on (the smoke target's; the jar may target an older one)."""
+    url = next(v['url'] for v in version_manifest()['versions'] if v['id'] == minecraft)
+    return json.loads(fetch(url))['javaVersion']['majorVersion']
 
 
 def neoforge_line(minecraft):
@@ -152,6 +163,8 @@ def plan():
             entry['also'] = also
             try:
                 builds, missing = (fabric_builds if loader == 'fabric' else neoforge_builds)(minecraft)
+                if builds:
+                    builds['java_version'] = java_version(minecraft)
                 if builds and 'quilt' in also:
                     quilt, missing = quilt_builds(minecraft)
                     builds = {**builds, **quilt} if quilt else None
@@ -175,15 +188,15 @@ def apply(entry):
     smoke.mkdir(exist_ok=True)
     lines = [f'# Smoke test: runs the GameTests on Minecraft {minecraft} with the jar built by {base}.',
              f'# Added by the weekly Minecraft version check.',
-             f'smoke_of={base}', f'java_version={base_props["java_version"]}', '']
+             f'smoke_of={base}', f'java_version={builds["java_version"]}', '']
     if loader == 'fabric':
-        lines += [f'fabric_loader={builds["fabric_loader"]}', f'fabric_api={builds["fabric_api"]}']
-        # The jar must accept the Fabric Loader this Minecraft version's Fabric API needs.
-        if version_key(builds['required_loader']) > version_key(base_props.get('fabric_loader_min', '0')):
-            set_prop(base_props_file, 'fabric_loader_min', builds['required_loader'])
-            # Development runs must still satisfy it.
-            if version_key(base_props['fabric_loader']) < version_key(builds['required_loader']):
-                set_prop(base_props_file, 'fabric_loader', builds['fabric_loader'])
+        lines += [f'fabric_loader={builds["fabric_loader"]}']
+        # The production test runs the jar's minimum Fabric Loader, unless this Minecraft version's
+        # Fabric API needs a newer one. The jar keeps its minimum: older Minecraft versions run on it.
+        if version_key(builds['required_loader']) > version_key(base_props['fabric_loader_min']):
+            lines += ["# Oldest Fabric Loader this Minecraft version's Fabric API accepts (newer than the jar's own",
+                      '# minimum); the production tests run on it.', f'fabric_loader_min={builds["required_loader"]}']
+        lines += [f'fabric_api={builds["fabric_api"]}']
     else:
         lines += [f'neoforge={builds["neoforge"]}', f'neoforge_min={builds["neoforge_min"]}']
     (smoke / 'gradle.properties').write_text('\n'.join(lines) + '\n')
@@ -193,7 +206,7 @@ def apply(entry):
         (quilt / 'gradle.properties').write_text('\n'.join([
             f'# Smoke test: the {base} jar on a Quilt server with Minecraft {minecraft} (Quilt runs Fabric mods).',
             f'# Added by the weekly Minecraft version check.',
-            f'smoke_of={base}', f'java_version={base_props["java_version"]}', 'production_server=true', '',
+            f'smoke_of={base}', f'java_version={builds["java_version"]}', 'production_server=true', '',
             f'quilt_loader={builds["quilt_loader"]}', f'fabric_api={builds["fabric_api"]}']) + '\n')
 
 
