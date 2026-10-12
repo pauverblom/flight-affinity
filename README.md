@@ -53,6 +53,12 @@ return registryAccess().lookupOrThrow(Registries.ENCHANTMENT)...;
 `fabric`, `neoforge` and `forge` work as conditions too, and classes in a `fabric`/`neoforge`/`forge`
 package are only compiled for that loader.
 
+### Jar names
+
+Every jar is named `flightaffinity-<loader>-<mod version>+mc<first>-<last>.jar` (or `+mc<version>` when it
+supports a single Minecraft version). The range is inclusive: `flightaffinity-neoforge-1.3.0+mc1.20.2-1.20.4.jar`
+works on 1.20.2, 1.20.3 and 1.20.4. The Forge 1.20.1 jar also runs on NeoForge 1.20.1.
+
 ### Everyday tasks
 
 | What | How |

@@ -17,7 +17,8 @@ def curseforgeToken = providers.environmentVariable('CURSEFORGE_TOKEN')
 
 publishMods {
     file = releaseJar.flatMap { it.archiveFile }
-    version = project.version as String
+    // Modrinth/CurseForge version numbers also name the loader, so each upload's number is unique.
+    version = "${project.version}-${loader}"
     displayName = "${mod_name} ${mod_version} for ${loaderNames[loader]} ${mcDisplay}"
     changelog = changelogFor(rootProject.file('CHANGELOG.md'), mod_version as String)
     type = STABLE
