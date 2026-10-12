@@ -1,0 +1,50 @@
+name: new-minecraft-versions
+
+# Every Monday: looks for Minecraft releases that no jar covers yet, tries them with the existing
+# jars (GameTests and production tests), pushes what works to the branch
+# compat/new-minecraft-versions and opens or updates an issue per Minecraft version, assigned to the
+# repository owner. GitHub emails assignees and mentioned users (Settings > Notifications >
+# "Participating, @mentions and custom": Email).
+# See .github/scripts/new_minecraft_versions.py.
+on:
+  schedule:
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+  # Changes to the check itself: only list what is new (no tests, branch or issues).
+  push:
+    paths:
+      - .github/scripts/new_minecraft_versions.py
+      - .github/workflows/new-minecraft-versions.yml
+
+concurrency:
+  group: new-minecraft-versions
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Use the installed JDKs as toolchains
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
+
+      - name: Check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ github.event_name == 'push' && 'plan' || 'check' }}
+        run: python3 .github/scripts/new_minecraft_versions.py "$MODE" | tee -a "$GITHUB_STEP_SUMMARY"
