@@ -61,7 +61,7 @@ jobs:
         if: failure()
         run: |
           echo "::group::Gradle errors"
-          grep -n -E "error:|warning: \[|What went wrong|^> |FAILED|Exception|Caused by" gradle.log | grep -v -E "^[0-9]+:\s+at " | head -80 || true
+          grep -n -A3 -E "error:|What went wrong|FAILED|Exception|Caused by" gradle.log | grep -v -E "^[0-9]+-\s+at |^[0-9]+:\s+at " | head -120 || true
           echo "::endgroup::"
           log=versions/${{ matrix.target }}/run/gametest/logs/latest.log
           if [ -f "$log" ]; then

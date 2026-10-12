@@ -75,11 +75,11 @@ def metadata = [
         pack_format    : project.findProperty('pack_format') ?: '',
         fabric_mc_range: mcMin == mcMax ? mcMin : ">=$mcMin <=$mcMax",
         fabric_loader  : project.findProperty('fabric_loader_min') ?: '',
-        maven_mc_range : "[$mcMin,$mcMax]",
-        // NeoForge 20.2-20.4 still read META-INF/mods.toml with the old Forge-style keys.
+        maven_mc_range : mcMin == mcMax ? "[$mcMin]" : "[$mcMin,$mcMax]",
         loader_dep     : loader == 'forge' ? 'forge' : 'neoforge',
         loader_range   : loader == 'forge' ? '[47,)' : "[${neoForgeVersionFor(mcMin)},)",
-        legacy_toml    : loader == 'forge' || !mcAtLeast('1.20.5'),
+        // Forge still uses `mandatory = true`; NeoForge (even 20.4, which reads META-INF/mods.toml) rejects it.
+        legacy_toml    : loader == 'forge',
         test_entrypoint: mcAtLeast('1.21.5') ? 'main' : 'fabric-gametest',
 ]
 
