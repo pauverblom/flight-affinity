@@ -118,6 +118,12 @@ jobs:
             grep -v -E "server.properties|eula.txt" "$log" | grep -n -m1 -A60 -E "Exception|Error:" || true
             echo "::endgroup::"
           done
+          debug=$dir/production/logs/debug.log
+          if [ -f "$debug" ]; then
+            echo "::group::Command exceptions in $debug"
+            grep -n -A25 "Command exception" "$debug" | head -80 || true
+            echo "::endgroup::"
+          fi
 
       - uses: actions/upload-artifact@v4
         if: always()

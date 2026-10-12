@@ -6,6 +6,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Set;
 
 /**
@@ -18,11 +19,27 @@ final class LegacyFluids {
     @SuppressWarnings("unchecked")
     static void submergeEyes(GameTestHelper helper, Player player) {
         try {
-            Field vanilla = Entity.class.getDeclaredField("fluidOnEyes");
-            vanilla.setAccessible(true);
-            ((Set<Object>) vanilla.get(player)).add(FluidTags.WATER);
+            // Entity.fluidOnEyes. Outside development its name is remapped and reflection by name would not
+            // follow, so try each Set field and keep the one that makes isEyeInFluid(WATER) true.
+            boolean marked = false;
+            for (Field field : Entity.class.getDeclaredFields()) {
+                if (field.getType() != Set.class || Modifier.isStatic(field.getModifiers())) continue;
+                field.setAccessible(true);
+                Set<Object> set = (Set<Object>) field.get(player);
+                try {
+                    if (set == null || !set.add(FluidTags.WATER)) continue;
+                } catch (UnsupportedOperationException immutable) {
+                    continue;
+                }
+                if (player.isEyeInFluid(FluidTags.WATER)) {
+                    marked = true;
+                    break;
+                }
+                set.remove(FluidTags.WATER);
+            }
+            if (!marked) throw new NoSuchFieldException("Entity.fluidOnEyes");
 
-            // Forge and NeoForge check their own fluid-type field instead.
+            // Forge and NeoForge check their own fluid-type field instead (added by them, so never remapped).
             //? if forge {
             /*Field forge = Entity.class.getDeclaredField("forgeFluidTypeOnEyes");
             forge.setAccessible(true);

@@ -153,6 +153,33 @@ def prepareRun = { List mods ->
 
 def latestLog = { new File(serverDir, 'logs/latest.log') }
 
+/*
+ * Console input for the start-up check: held back until the server has finished starting (its log
+ * says "Done (") and a few seconds more, as commands sent while it starts can fail.
+ */
+class ConsoleInputAfterStart extends InputStream {
+    private final File log
+    private final byte[] input
+    private int position = 0
+    private boolean started = false
+
+    ConsoleInputAfterStart(File log, String input) {
+        this.log = log
+        this.input = input.bytes
+    }
+
+    @Override
+    int read() {
+        if (!started) {
+            def deadline = System.currentTimeMillis() + 8 * 60 * 1000
+            while (!(log.exists() && log.text.contains('Done (')) && System.currentTimeMillis() < deadline) Thread.sleep(1000)
+            Thread.sleep(5000)
+            started = true
+        }
+        return position < input.length ? (input[position++] & 0xff) : -1
+    }
+}
+
 def gameTestsSupported = !(serverLoader == 'neoforge' && atLeast('1.21.5') && !atLeast('1.21.9'))
 def runGameTests = null
 if (gameTestsSupported) {
@@ -190,17 +217,22 @@ def runBoot = tasks.register('runProductionBoot', Exec) {
     def mods = files(release.releaseJar, configurations.productionMods)
     inputs.files(mods)
     workingDir serverDir
-    timeout = Duration.ofMinutes(10)
-    // Read by the server console once it has started.
-    standardInput = new ByteArrayInputStream("enchant @a $enchantment\nstop\n".bytes)
+    // Generous for start-up; a server that ignores `stop` would otherwise run until the CI job times out.
+    timeout = Duration.ofMinutes(5)
     doFirst {
         prepareRun(mods.files as List)
+        standardInput = new ConsoleInputAfterStart(latestLog(), "enchant @a $enchantment\nstop\n")
         executable javaExecutable()
         args launchArgs(false)
     }
     doLast {
         def log = latestLog().text
         project.copy { from latestLog(); into serverDir; rename { 'boot.log' } }
+        if (!(log =~ /No (entity|player) was found/)) {
+            // Command errors only show their cause in NeoForge's debug log.
+            def debugLog = new File(serverDir, 'logs/debug.log')
+            if (debugLog.exists()) debugLog.readLines().findAll { it.contains('Command exception') || it.contains('Exception') }.take(20).each { logger.error(it) }
+        }
         if (!(log =~ /No (entity|player) was found/))
             throw new GradleException("The server did not start, or $enchantment is not registered; see run/production/boot.log")
         logger.lifecycle("$releaseName starts on $serverLoader $loaderVersion (Minecraft $mc) and registers $enchantment")
