@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # One job per directory in versions/, so adding a target adds it to CI automatically.
   targets:
@@ -40,17 +44,31 @@ jobs:
           echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
 
       - name: Build
-        run: ./gradlew ":${{ matrix.target }}:build"
+        run: ./gradlew ":${{ matrix.target }}:build" 2>&1 | tee -a gradle.log
 
       - name: GameTests
-        run: ./gradlew ":${{ matrix.target }}:runGametest"
+        run: ./gradlew ":${{ matrix.target }}:runGametest" 2>&1 | tee -a gradle.log
 
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar
-        run: ./gradlew ":${{ matrix.target }}:checkReleaseJar"
+        run: ./gradlew ":${{ matrix.target }}:checkReleaseJar" 2>&1 | tee -a gradle.log
 
       - name: Publish dry run
-        run: ./gradlew ":${{ matrix.target }}:publishMods"
+        run: ./gradlew ":${{ matrix.target }}:publishMods" 2>&1 | tee -a gradle.log
+
+      # Puts the lines that explain a failure at the end of the log, where they are easy to find.
+      - name: Summarize failure
+        if: failure()
+        run: |
+          echo "::group::Gradle errors"
+          grep -n -E "error:|warning: \[|What went wrong|^> |FAILED|Exception|Caused by" gradle.log | grep -v -E "^[0-9]+:\s+at " | head -80 || true
+          echo "::endgroup::"
+          log=versions/${{ matrix.target }}/run/gametest/logs/latest.log
+          if [ -f "$log" ]; then
+            echo "::group::Game log errors"
+            grep -n -E "ERROR|FATAL|Exception|Caused by|failed|Failed|passed|tests" "$log" | grep -v -E "^[0-9]+:\s+at " | head -120 || true
+            echo "::endgroup::"
+          fi
 
       - uses: actions/upload-artifact@v4
         if: always()

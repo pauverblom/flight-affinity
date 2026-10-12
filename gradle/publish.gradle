@@ -41,6 +41,8 @@ publishMods {
         accessToken = curseforgeToken
         minecraftVersions.addAll(mcTargets)
         javaVersions.add(JavaVersion.toVersion(java_version))
+        client = true
+        server = true
     }
 }
 
