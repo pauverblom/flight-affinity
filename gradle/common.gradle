@@ -139,6 +139,13 @@ if (isSmoke && runtimeLoader == loader) {
     tasks.matching { it.name == 'runGametest' }.configureEach { dependsOn installTestedJar }
 }
 
+// The GameTests packaged as a mod, for smoke tests on installed servers (gradle/production-smoke.gradle).
+tasks.register('testModJar', Jar) {
+    description = 'Packages the GameTests as a mod jar.'
+    archiveClassifier = 'testmod'
+    from sourceSets.test.output
+}
+
 // There are no JUnit tests: the tests are GameTests, run with runGametest.
 tasks.named('test') { enabled = false }
 

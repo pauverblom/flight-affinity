@@ -1,8 +1,9 @@
 // NeoForge targets (1.20.2+). NeoForge runs on Mojang names, so the jar is not remapped.
-plugins {
-    id 'net.neoforged.moddev'
+if (project.findProperty('production_server') == 'true') {
+    apply from: rootProject.file('gradle/production-smoke.gradle')
+    return
 }
-
+apply plugin: 'net.neoforged.moddev'
 apply from: rootProject.file('gradle/common.gradle')
 
 neoForge {
