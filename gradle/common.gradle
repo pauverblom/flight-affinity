@@ -80,9 +80,7 @@ def metadata = [
         loader_range   : loader == 'forge' ? '[47,)' : "[${neoForgeVersionFor(mcMin)},)",
         // Forge still uses `mandatory = true`; NeoForge (even 20.4, which reads META-INF/mods.toml) rejects it.
         legacy_toml    : loader == 'forge',
-        // Fabric registers tests from a main entrypoint on 1.21.5-1.21.11 and through Fabric API's
-        // fabric-gametest entrypoint otherwise (see test/fabric/FabricGameTests.java).
-        test_entrypoint: mcAtLeast('1.21.5') && !mcAtLeast('26.1') ? 'main' : 'fabric-gametest',
+        test_entrypoint: mcAtLeast('1.21.5') ? 'main' : 'fabric-gametest',
 ]
 
 def templates = ['fabric.mod.json', 'META-INF/mods.toml', '*.mixins.json', 'pack.mcmeta']
@@ -106,8 +104,6 @@ tasks.withType(ProcessResources).configureEach {
     if (mcAtLeast('1.21')) exclude 'data/*/structures/**'
     if (!mcAtLeast('1.21') || mcAtLeast('1.21.5')) exclude 'data/*/structure/**'
     if (!mcAtLeast('1.21.5')) exclude 'data/*/test_instance/**'
-    // Fabric API creates the test instances itself for @GameTest methods (Fabric 26.1+).
-    if (loader == 'fabric' && mcAtLeast('26.1')) exclude 'data/*/test_instance/**'
 }
 
 // There are no JUnit tests: the tests are GameTests, run with runGametest.

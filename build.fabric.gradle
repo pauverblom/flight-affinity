@@ -7,9 +7,9 @@ dependencies {
     minecraft "com.mojang:minecraft:${minecraft}"
     if (unobfuscated) {
         implementation "net.fabricmc:fabric-loader:${fabric_loader}"
-        // The mod itself does not use Fabric API; it is only needed to run GameTests.
-        localRuntime "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
-        testCompileOnly "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
+        // The mod itself does not use Fabric API; the GameTest run needs it. Without remapping,
+        // localRuntime only reaches the main source set, so it goes on the test classpath instead.
+        testRuntimeOnly "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
     } else {
         mappings loom.officialMojangMappings()
         modImplementation "net.fabricmc:fabric-loader:${fabric_loader}"

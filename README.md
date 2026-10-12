@@ -68,8 +68,7 @@ package are only compiled for that loader.
 
 `src/test` holds the GameTests. `FlightAffinityTests.ALL` is the single list of tests; each loader
 registers it (see the `test/fabric`, `test/neoforge`, `test/forge` packages). When adding a test, also add
-`data/flightaffinity-test/test_instance/<name>.json` (used from 1.21.5) and, for Fabric 26.x, a stub
-method in `test/fabric/FabricGameTests.java`.
+`data/flightaffinity-test/test_instance/<name>.json` (used from 1.21.5).
 
 CI (`.github/workflows/build.yml`) runs one job per target. Each job:
 
