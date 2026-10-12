@@ -16,6 +16,7 @@
  * Targets with production_server=true only have these tasks (no development environment).
  */
 import java.time.Duration
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 
 apply plugin: 'base'
 apply plugin: 'jvm-toolchains'
@@ -71,12 +72,21 @@ repositories {
 configurations {
     productionInstaller { transitive = false }
     productionMods { transitive = false }
+    fabricApiModules
 }
 dependencies {
     productionInstaller installerCoordinates
-    // The mod requires Fabric API (its resource loader loads the mod's data and translations).
-    if (fabricLike) productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api}"
+    if (fabricLike) {
+        // The mod requires Fabric API (its resource loader loads the mod's data and translations).
+        productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api}"
+        fabricApiModules "net.fabricmc.fabric-api:fabric-api:${project.fabric_api}"
+    }
 }
+// Fabric API's GameTest runner is not in the fabric-api jar (it is a development-only module); take
+// the version that fabric-api depends on.
+def gameTestMods = configurations.fabricApiModules.incoming.artifactView {
+    componentFilter { it instanceof ModuleComponentIdentifier && it.module == 'fabric-gametest-api-v1' }
+}.files
 
 def serverDir = file('run/production')
 def serverJava = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(project.java_version as int) }
@@ -150,12 +160,13 @@ if (gameTestsSupported) {
         group = 'verification'
         description = "Runs the GameTests with the $releaseName jar on an installed $serverLoader server."
         dependsOn installServer
-        def mods = files(release.releaseJar, release.productionTestJar, configurations.productionMods)
+        def mods = files(release.releaseJar, release.productionTestJar, configurations.productionMods, gameTestMods)
         inputs.files(mods)
         workingDir serverDir
         // A GameTest server whose tests never start keeps running; fail instead.
         timeout = Duration.ofMinutes(15)
         doFirst {
+            if (fabricLike && gameTestMods.isEmpty()) throw new GradleException("fabric-api ${project.fabric_api} does not depend on fabric-gametest-api-v1")
             prepareRun(mods.files as List)
             executable javaExecutable()
             args launchArgs(true)
