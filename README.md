@@ -67,8 +67,18 @@ package are only compiled for that loader.
 ### Tests
 
 `src/test` holds the GameTests. `FlightAffinityTests.ALL` is the single list of tests; each loader
-registers it (see the `test/fabric`, `test/neoforge`, `test/forge` packages). From 1.21.5 on every test
-also needs a `data/flightaffinity-test/test_instance/<name>.json` file.
+registers it (see the `test/fabric`, `test/neoforge`, `test/forge` packages). When adding a test, also add
+`data/flightaffinity-test/test_instance/<name>.json` (used from 1.21.5) and, for Fabric 26.x, a stub
+method in `test/fabric/FabricGameTests.java`.
 
-CI (`.github/workflows/build.yml`) builds every target, runs its GameTests, checks the release jar
-and does a publish dry run.
+CI (`.github/workflows/build.yml`) runs one job per target. Each job:
+
+1. builds the target,
+2. runs its GameTests and checks that all of them passed (a test server that crashes, or registers
+   no tests, does not count as a pass),
+3. checks the jar players install: correct metadata file, no test classes, mixins remapped
+   (Fabric) or a refmap present (Forge),
+4. does a Modrinth/CurseForge publish dry run.
+
+These GameTests run against the development build on the version each target is compiled for. They
+don't yet prove that a jar works on every other Minecraft version listed in its `mc_targets`.
