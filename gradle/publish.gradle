@@ -1,0 +1,84 @@
+/*
+ * Modrinth + CurseForge upload for one target: ./gradlew :<target>:publishMods
+ * Tokens come from MODRINTH_TOKEN / CURSEFORGE_TOKEN; without them the task is a dry run.
+ * `releaseJar` is set by the loader script to the jar players actually install.
+ */
+apply plugin: 'me.modmuss50.mod-publish-plugin'
+
+static String changelogFor(File file, String version) {
+    if (!file.exists()) return "Release $version"
+    def m = file.text =~ /(?ms)^## \[${java.util.regex.Pattern.quote(version)}\][^\n]*\n(.*?)(?=^## \[|\z)/
+    return m ? (m[0][1] as String).trim() : "Release $version"
+}
+
+def loaderNames = [fabric: 'Fabric', neoforge: 'NeoForge', forge: 'Forge']
+def modrinthToken = providers.environmentVariable('MODRINTH_TOKEN')
+def curseforgeToken = providers.environmentVariable('CURSEFORGE_TOKEN')
+
+publishMods {
+    file = releaseJar.flatMap { it.archiveFile }
+    version = project.version as String
+    displayName = "${mod_name} ${mod_version} for ${loaderNames[loader]} ${mcDisplay}"
+    changelog = changelogFor(rootProject.file('CHANGELOG.md'), mod_version as String)
+    type = STABLE
+    dryRun = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
+
+    switch (loader) {
+        case 'fabric': modLoaders.addAll('fabric', 'quilt'); break
+        // NeoForge 1.20.1 is a fork of Forge 47 and loads Forge 1.20.1 mods.
+        case 'forge': modLoaders.addAll('forge', 'neoforge'); break
+        default: modLoaders.add(loader)
+    }
+
+    modrinth {
+        projectId = modrinth_id
+        accessToken = modrinthToken
+        minecraftVersions.addAll(mcTargets)
+    }
+
+    curseforge {
+        projectId = curseforge_id
+        accessToken = curseforgeToken
+        minecraftVersions.addAll(mcTargets)
+        javaVersions.add(JavaVersion.toVersion(java_version))
+    }
+}
+
+/*
+ * Sanity checks on the jar players install. CI runs this because the GameTests only exercise the
+ * development build: they cannot notice a jar that was never remapped or lost its mixin refmap.
+ */
+tasks.register('checkReleaseJar') {
+    group = 'verification'
+    description = 'Checks the release jar contents (metadata, refmap, no test classes).'
+    def jarFile = releaseJar.flatMap { it.archiveFile }
+    def expectRefmap = loader == 'forge' || (loader == 'fabric' && !mcAtLeast('26.1'))
+    def metadataFile = loader == 'fabric' ? 'fabric.mod.json'
+            : (loader == 'neoforge' && mcAtLeast('1.20.5')) ? 'META-INF/neoforge.mods.toml' : 'META-INF/mods.toml'
+    def obfuscatedName = loader == 'fabric' ? 'class_' : 'm_'
+    def modId = mod_id
+    inputs.file(jarFile)
+    doLast {
+        def zip = new java.util.zip.ZipFile(jarFile.get().asFile)
+        try {
+            def text = { path -> def e = zip.getEntry(path as String); e == null ? null : zip.getInputStream(e).text }
+            def problems = []
+            if (text(metadataFile) == null) problems << "missing $metadataFile"
+            if (zip.entries().toList().any { it.name.contains('/flightaffinity/test/') }) problems << 'contains test classes'
+            def mixins = text("${modId}.mixins.json")
+            if (mixins == null) problems << 'missing mixin config'
+            def refmap = text("${modId}.refmap.json")
+            if (expectRefmap) {
+                if (refmap == null) problems << 'missing mixin refmap'
+                else if (!refmap.contains(obfuscatedName)) problems << "refmap has no $obfuscatedName names: $refmap"
+                if (mixins != null && !mixins.contains('refmap')) problems << 'mixin config does not reference the refmap'
+            } else if (mixins != null && mixins.contains('refmap')) {
+                problems << 'mixin config references a refmap that is not needed'
+            }
+            if (!problems.isEmpty()) throw new GradleException("${jarFile.get().asFile.name}: ${problems.join('; ')}")
+            logger.lifecycle("${jarFile.get().asFile.name} looks good")
+        } finally {
+            zip.close()
+        }
+    }
+}

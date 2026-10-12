@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "flightaffinity-test",
+  "name": "Flight Affinity Tests",
+  "version": "1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "${test_entrypoint}": ["net.baneina.flightaffinity.test.fabric.FabricGameTests"]
+  },
+  "depends": {
+    "flightaffinity": "*"
+  }
+}

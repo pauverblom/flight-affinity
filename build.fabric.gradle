@@ -1,0 +1,37 @@
+// Fabric (and Quilt) targets. Minecraft 26.1+ ships unobfuscated, so Loom no longer remaps.
+def unobfuscated = stonecutter.eval(stonecutter.current.version as String, '>=26.1')
+apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
+apply from: rootProject.file('gradle/common.gradle')
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft}"
+    if (unobfuscated) {
+        implementation "net.fabricmc:fabric-loader:${fabric_loader}"
+        // The mod itself does not use Fabric API; it is only needed to run GameTests.
+        localRuntime "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
+    } else {
+        mappings loom.officialMojangMappings()
+        modImplementation "net.fabricmc:fabric-loader:${fabric_loader}"
+        modLocalRuntime "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
+        // Lets the Mixin annotation processor write refmap entries for MixinExtras injectors.
+        annotationProcessor "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
+    }
+}
+
+loom {
+    if (!unobfuscated) mixin.defaultRefmapName = "${mod_id}.refmap.json"
+    runs {
+        gametest {
+            server()
+            configName = 'Fabric GameTest Server'
+            source sourceSets.test
+            vmArg '-Dfabric-api.gametest'
+            vmArg "-Dfabric-api.gametest.report-file=${layout.buildDirectory.file('gametest-report.xml').get().asFile}"
+            runDir 'run/gametest'
+        }
+    }
+}
+
+// The jar users install: remapped to intermediary names on obfuscated versions.
+ext.releaseJar = unobfuscated ? tasks.named('jar') : tasks.named('remapJar')
+apply from: rootProject.file('gradle/publish.gradle')

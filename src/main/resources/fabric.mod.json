@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "description": "${mod_description_json}",
+  "authors": ["${mod_author}"],
+  "contact": {
+    "homepage": "${mod_homepage}",
+    "sources": "${mod_sources}",
+    "issues": "${mod_issues}"
+  },
+  "license": "${mod_license}",
+  "icon": "assets/flightaffinity/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["net.baneina.flightaffinity.fabric.FlightAffinityFabric"]
+  },
+  "mixins": ["${mod_id}.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${fabric_loader}",
+    "minecraft": "${fabric_mc_range}",
+    "java": ">=${java_version}"
+  }
+}

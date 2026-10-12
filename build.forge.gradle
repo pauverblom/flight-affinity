@@ -1,0 +1,51 @@
+// Forge 1.20.1 (the published jar also declares NeoForge 1.20.1, which is a Forge 47 fork).
+plugins {
+    id 'net.neoforged.moddev.legacyforge'
+}
+
+apply from: rootProject.file('gradle/common.gradle')
+
+legacyForge {
+    version = "${minecraft}-${project.forge}"
+
+    runs {
+        client { client() }
+        server { server() }
+        gametest {
+            type = 'gameTestServer'
+            sourceSet = sourceSets.test
+            systemProperty 'forge.enabledGameTestNamespaces', 'flightaffinity-test'
+            gameDirectory = project.file('run/gametest')
+        }
+    }
+
+    // GameTests live in the test source set and need Minecraft on their classpath.
+    addModdingDependenciesTo sourceSets.test
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.test
+        }
+    }
+}
+
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
+dependencies {
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    compileOnly "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
+    annotationProcessor "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
+}
+
+tasks.named('jar', Jar) {
+    // Forge 1.20.1 finds mixin configs through the manifest, not mods.toml.
+    manifest.attributes('MixinConfigs': "${mod_id}.mixins.json")
+}
+
+// The jar users install: reobfuscated to SRG names.
+ext.releaseJar = tasks.named('reobfJar')
+apply from: rootProject.file('gradle/publish.gradle')

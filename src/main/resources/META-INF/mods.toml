@@ -1,0 +1,33 @@
+# Template for Forge (META-INF/mods.toml) and NeoForge (renamed to META-INF/neoforge.mods.toml
+# from 1.20.5 on). Values are filled in by gradle/common.gradle.
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "${mod_license}"
+issueTrackerURL = "${mod_issues}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+logoFile = "assets/flightaffinity/icon.png"
+authors = "${mod_author}"
+displayURL = "${mod_homepage}"
+description = '''${mod_description}'''
+
+[[dependencies.${mod_id}]]
+modId = "${loader_dep}"
+<% if (legacy_toml) { %>mandatory = true<% } else { %>type = "required"<% } %>
+versionRange = "${loader_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+<% if (legacy_toml) { %>mandatory = true<% } else { %>type = "required"<% } %>
+versionRange = "${maven_mc_range}"
+ordering = "NONE"
+side = "BOTH"
+<% if (loader == 'neoforge') { %>
+[[mixins]]
+config = "${mod_id}.mixins.json"
+<% } %>

@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.baneina.flightaffinity.mixin",
+  "compatibilityLevel": "${mixin_compat}",<% if (refmap) { %>
+  "refmap": "${mod_id}.refmap.json",<% } %>
+  "mixins": [
+    "PlayerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

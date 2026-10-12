@@ -1,0 +1,63 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # One job per directory in versions/, so adding a target adds it to CI automatically.
+  targets:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: echo "list=$(ls versions | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: targets
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.targets.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Use the installed JDKs as toolchains
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64" >> ~/.gradle/gradle.properties
+
+      - name: Build
+        run: ./gradlew ":${{ matrix.target }}:build" --stacktrace
+
+      - name: GameTests
+        run: ./gradlew ":${{ matrix.target }}:runGametest" --stacktrace
+
+      # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
+      - name: Check release jar
+        run: ./gradlew ":${{ matrix.target }}:checkReleaseJar"
+
+      - name: Publish dry run
+        run: ./gradlew ":${{ matrix.target }}:publishMods"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            versions/${{ matrix.target }}/build/libs/
+            versions/${{ matrix.target }}/run/gametest/logs/
+            versions/${{ matrix.target }}/build/gametest-report.xml
+          if-no-files-found: ignore

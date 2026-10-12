@@ -1,0 +1,120 @@
+/*
+ * Shared configuration for every target, applied by build.<loader>.gradle.
+ * A target is "<minecraft>-<loader>"; its versions/<target>/gradle.properties provides
+ * java_version, mc_targets and the loader dependency versions.
+ */
+
+ext.loader = project.name.substring(project.name.lastIndexOf('-') + 1)
+ext.minecraft = stonecutter.current.version as String
+ext.mcAtLeast = { String v -> stonecutter.eval(minecraft, ">=$v".toString()) }
+
+// Minecraft versions this jar is published for, oldest first.
+ext.mcTargets = (project.property('mc_targets') as String).trim().split(/\s+/) as List<String>
+ext.mcMin = mcTargets.first()
+ext.mcMax = mcTargets.last()
+ext.mcDisplay = mcMin == mcMax ? mcMin : "$mcMin-$mcMax"
+
+version = "${mod_version}+mc${mcDisplay}-${loader}"
+group = mod_group
+base.archivesName = mod_id
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = java_version as int
+}
+
+// Loader-specific classes live in packages named after their loader.
+def otherLoaders = ['fabric', 'neoforge', 'forge'] - loader
+// Whole files that only exist for some Minecraft versions (smaller differences use //? comments).
+def versionedSources = [
+        '**/enchantment/FlightAffinityEnchantment.java': '<1.21',
+        '**/test/LegacyFluids.java'                    : '<1.20.5',
+]
+sourceSets.configureEach {
+    java {
+        otherLoaders.each { exclude "**/flightaffinity/$it/**", "**/flightaffinity/test/$it/**" }
+        versionedSources.each { pattern, predicate -> if (!stonecutter.eval(minecraft, predicate)) exclude pattern }
+    }
+}
+
+/*
+ * Metadata is generated from the values above, so the version ranges in fabric.mod.json,
+ * mods.toml and the Modrinth/CurseForge uploads always agree.
+ */
+static String neoForgeVersionFor(String mc) {
+    // 1.21.1 -> 21.1, 1.20.2 -> 20.2, 26.1.2 -> 26.1.2
+    def parts = mc.split(/\./)
+    return parts[0] == '1' ? "${parts[1]}.${parts.length > 2 ? parts[2] : '0'}" : mc
+}
+
+def metadata = [
+        mod_id         : mod_id,
+        mod_name       : mod_name,
+        mod_version    : project.version,
+        mod_author     : mod_author,
+        mod_license    : mod_license,
+        mod_description: mod_description,
+        mod_description_json: (mod_description as String).replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n'),
+        mod_homepage   : mod_homepage,
+        mod_sources    : mod_sources,
+        mod_issues     : mod_issues,
+        java_version   : java_version,
+        loader         : loader,
+        // Mixin needs a refmap wherever the shipped jar is remapped (obfuscated Fabric, Forge).
+        refmap         : (loader == 'fabric' && !mcAtLeast('26.1')) || loader == 'forge',
+        mixin_compat   : mcAtLeast('1.20.5') ? 'JAVA_21' : 'JAVA_17',
+        pack_format    : project.findProperty('pack_format') ?: '',
+        fabric_mc_range: mcMin == mcMax ? mcMin : ">=$mcMin <=$mcMax",
+        fabric_loader  : project.findProperty('fabric_loader_min') ?: '',
+        maven_mc_range : "[$mcMin,$mcMax]",
+        // NeoForge 20.2-20.4 still read META-INF/mods.toml with the old Forge-style keys.
+        loader_dep     : loader == 'forge' ? 'forge' : 'neoforge',
+        loader_range   : loader == 'forge' ? '[47,)' : "[${neoForgeVersionFor(mcMin)},)",
+        legacy_toml    : loader == 'forge' || !mcAtLeast('1.20.5'),
+        test_entrypoint: mcAtLeast('1.21.5') ? 'main' : 'fabric-gametest',
+]
+
+def templates = ['fabric.mod.json', 'META-INF/mods.toml', '*.mixins.json', 'pack.mcmeta']
+
+tasks.withType(ProcessResources).configureEach {
+    inputs.properties(metadata)
+    filesMatching(templates) { expand(metadata) }
+
+    if (loader != 'fabric') exclude 'fabric.mod.json'
+    if (loader == 'fabric') exclude 'META-INF/mods.toml'
+    if (loader == 'neoforge' && mcAtLeast('1.20.5')) {
+        filesMatching('META-INF/mods.toml') { path = 'META-INF/neoforge.mods.toml' }
+    }
+    if (!project.hasProperty('pack_format')) exclude 'pack.mcmeta'
+
+    // Enchantments became data-driven in 1.21; before that the enchantment is registered in code.
+    if (!mcAtLeast('1.21')) exclude 'data/*/enchantment/**', 'data/minecraft/tags/enchantment/**'
+
+    // GameTest structures: data/<ns>/structures before 1.21, data/<ns>/structure until 1.21.5,
+    // after which tests are declared as test_instance files and need no structure.
+    if (mcAtLeast('1.21')) exclude 'data/*/structures/**'
+    if (!mcAtLeast('1.21') || mcAtLeast('1.21.5')) exclude 'data/*/structure/**'
+    if (!mcAtLeast('1.21.5')) exclude 'data/*/test_instance/**'
+}
+
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE')) { rename { "LICENSE_${mod_id}" } }
+}
+
+tasks.named('jar', Jar) {
+    manifest.attributes(
+            'Implementation-Title': mod_name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor': mod_author,
+            'Built-On-Minecraft': minecraft,
+    )
+}
