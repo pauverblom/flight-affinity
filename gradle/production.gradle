@@ -1,0 +1,204 @@
+/*
+ * Production tests: the jar players install, on a server installed with the loader's own installer
+ * (no development environment, no remapping at runtime, real metadata checks). Every target runs them:
+ *
+ *  - runProductionBoot: the release jar alone (plus Fabric API on Fabric and Quilt) must start, and
+ *    the enchantment must exist: the console command `enchant @a <enchantment>` can only answer
+ *    "No player was found" if the enchantment is registered.
+ *  - runProductionGametest: the release jar plus the GameTests (packaged as a mod by the release
+ *    target, see productionTestJar) on a GameTest server. Not available on NeoForge 1.21.5-1.21.8,
+ *    which can only start a GameTest server in development.
+ *  - productionTest: both.
+ *
+ * The server runs the oldest loader version the jar accepts (fabric_loader_min, neoforge_min,
+ * forge_min, quilt_loader); the development GameTests run the newest.
+ *
+ * Targets with production_server=true only have these tasks (no development environment).
+ */
+import java.time.Duration
+
+apply plugin: 'base'
+apply plugin: 'jvm-toolchains'
+
+def nameParts = project.name.split('-')
+def mc = stonecutter.current.version as String
+def atLeast = { String v -> stonecutter.eval(mc, ">=$v".toString()) }
+// The loader the server runs: the last part of the target name (1.20.1-forge-neoforge -> neoforge).
+def serverLoader = nameParts.last()
+def fabricLike = serverLoader in ['fabric', 'quilt']
+def releaseName = project.findProperty('smoke_of') as String ?: project.name
+if (releaseName != project.name) evaluationDependsOn(":$releaseName")
+def release = project(":$releaseName")
+
+def loaderVersion = [
+        fabric  : { release.property('fabric_loader_min') },
+        quilt   : { project.property('quilt_loader') },
+        neoforge: { project.findProperty('neoforge_min') ?: project.property('neoforge') },
+        forge   : { project.findProperty('forge_min') ?: project.property('forge') },
+][serverLoader]() as String
+
+def installerCoordinates = [
+        fabric  : "net.fabricmc:fabric-installer:${project.fabric_installer}",
+        quilt   : "org.quiltmc:quilt-installer:${project.quilt_installer}",
+        // NeoForge for 1.20.1 is a Forge fork and still published as net.neoforged:forge.
+        neoforge: mc == '1.20.1' ? "net.neoforged:forge:${loaderVersion}:installer" : "net.neoforged:neoforge:${loaderVersion}:installer",
+        forge   : "net.minecraftforge:forge:${mc}-${loaderVersion}:installer",
+][serverLoader]
+
+repositories {
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+        content { includeGroupAndSubgroups 'net.fabricmc' }
+    }
+    maven {
+        name = 'Quilt'
+        url = 'https://maven.quiltmc.org/repository/release/'
+        content { includeGroup 'org.quiltmc' }
+    }
+    maven {
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases/'
+        content { includeGroup 'net.neoforged' }
+    }
+    maven {
+        name = 'MinecraftForge'
+        url = 'https://maven.minecraftforge.net/'
+        content { includeGroup 'net.minecraftforge' }
+    }
+}
+
+configurations {
+    productionInstaller { transitive = false }
+    productionMods { transitive = false }
+}
+dependencies {
+    productionInstaller installerCoordinates
+    // The mod requires Fabric API (its resource loader loads the mod's data and translations).
+    if (fabricLike) productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api}"
+}
+
+def serverDir = file('run/production')
+def serverJava = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(project.java_version as int) }
+def javaExecutable = { serverJava.get().executablePath.asFile.absolutePath }
+def expectedTests = rootProject.file('src/test/resources/data/flightaffinity-test/test_instance').list().length
+def enchantment = "${project.mod_id}:flight_affinity"
+
+def installServer = tasks.register('installProductionServer', Exec) {
+    group = 'verification'
+    description = "Installs a $serverLoader $loaderVersion server for Minecraft $mc into run/production."
+    def installer = configurations.productionInstaller
+    inputs.files(installer)
+    inputs.property('loaderVersion', loaderVersion)
+    def marker = new File(serverDir, 'installed.txt')
+    outputs.file(marker)
+    workingDir serverDir
+    doFirst {
+        project.delete(serverDir)
+        serverDir.mkdirs()
+        executable javaExecutable()
+        args '-jar', installer.singleFile.absolutePath
+        switch (serverLoader) {
+            case 'fabric': args 'server', '-dir', serverDir.absolutePath, '-mcversion', mc, '-loader', loaderVersion, '-downloadMinecraft'; break
+            case 'quilt': args 'install', 'server', mc, loaderVersion, '--download-server', "--install-dir=${serverDir.absolutePath}"; break
+            default: args '--installServer', serverDir.absolutePath
+        }
+    }
+    doLast { marker.text = "$serverLoader $loaderVersion\n" }
+}
+
+// The command line after `java` for this server. NeoForge and Forge list their JVM arguments, main
+// class and program arguments in an argument file written by the installer.
+def launchArgs = { boolean gameTests ->
+    def jvm = []
+    if (gameTests) {
+        if (fabricLike) jvm << '-Dfabric-api.gametest'
+        else if (serverLoader == 'forge' || mc == '1.20.1') jvm << '-Dforge.gameTestServer=true'
+        else if (!atLeast('1.21.5')) jvm << '-Dneoforge.gameTestServer=true'
+    }
+    switch (serverLoader) {
+        case 'fabric': return jvm + ['-jar', 'fabric-server-launch.jar'] + (gameTests ? [] : ['nogui'])
+        case 'quilt': return jvm + ['-jar', 'quilt-server-launch.jar'] + (gameTests ? [] : ['nogui'])
+    }
+    def argsFile = project.fileTree(new File(serverDir, 'libraries')) { include '**/unix_args.txt' }.singleFile
+    if (gameTests && atLeast('1.21.5')) {
+        // NeoForge 1.21.9+ starts through FancyModLoader's entry points; it has one for GameTest servers.
+        def text = argsFile.text
+        if (!text.contains('net.neoforged.fml.startup.Server')) throw new GradleException("$argsFile has no FancyModLoader server entry point")
+        def gameTestArgs = new File(serverDir, 'gametest_args.txt')
+        gameTestArgs.text = text.replace('net.neoforged.fml.startup.Server', 'net.neoforged.fml.startup.GameTestServer')
+        argsFile = gameTestArgs
+    }
+    return jvm + ["@${serverDir.toPath().relativize(argsFile.toPath())}".toString()] + (gameTests ? [] : ['nogui'])
+}
+
+def prepareRun = { List mods ->
+    project.delete(new File(serverDir, 'world'), new File(serverDir, 'gametestserver'), new File(serverDir, 'logs'))
+    project.sync {
+        from(mods)
+        into(new File(serverDir, 'mods'))
+    }
+    new File(serverDir, 'eula.txt').text = 'eula=true\n'
+}
+
+def latestLog = { new File(serverDir, 'logs/latest.log') }
+
+def gameTestsSupported = !(serverLoader == 'neoforge' && atLeast('1.21.5') && !atLeast('1.21.9'))
+def runGameTests = null
+if (gameTestsSupported) {
+    runGameTests = tasks.register('runProductionGametest', Exec) {
+        group = 'verification'
+        description = "Runs the GameTests with the $releaseName jar on an installed $serverLoader server."
+        dependsOn installServer
+        def mods = files(release.releaseJar, release.productionTestJar, configurations.productionMods)
+        inputs.files(mods)
+        workingDir serverDir
+        // A GameTest server whose tests never start keeps running; fail instead.
+        timeout = Duration.ofMinutes(15)
+        doFirst {
+            prepareRun(mods.files as List)
+            executable javaExecutable()
+            args launchArgs(true)
+        }
+        doLast {
+            def log = latestLog().text
+            project.copy { from latestLog(); into serverDir; rename { 'gametest.log' } }
+            def passed = (log =~ /All (\d+) required tests passed/).findAll().collect { it[1] as int }.max() ?: 0
+            if (passed < expectedTests)
+                throw new GradleException("$passed of $expectedTests GameTests passed on the installed server; see run/production/gametest.log")
+            logger.lifecycle("All $passed GameTests passed on $serverLoader $loaderVersion (Minecraft $mc)")
+        }
+    }
+}
+
+def runBoot = tasks.register('runProductionBoot', Exec) {
+    group = 'verification'
+    description = "Starts an installed $serverLoader server with only the $releaseName jar and checks the enchantment exists."
+    dependsOn installServer
+    if (runGameTests != null) mustRunAfter runGameTests
+    def mods = files(release.releaseJar, configurations.productionMods)
+    inputs.files(mods)
+    workingDir serverDir
+    timeout = Duration.ofMinutes(10)
+    // Read by the server console once it has started.
+    standardInput = new ByteArrayInputStream("enchant @a $enchantment\nstop\n".bytes)
+    doFirst {
+        prepareRun(mods.files as List)
+        executable javaExecutable()
+        args launchArgs(false)
+    }
+    doLast {
+        def log = latestLog().text
+        project.copy { from latestLog(); into serverDir; rename { 'boot.log' } }
+        if (!log.contains('No player was found'))
+            throw new GradleException("The server did not start, or $enchantment is not registered; see run/production/boot.log")
+        logger.lifecycle("$releaseName starts on $serverLoader $loaderVersion (Minecraft $mc) and registers $enchantment")
+    }
+}
+
+tasks.register('productionTest') {
+    group = 'verification'
+    description = 'Runs the production tests (installed server, release jar).'
+    dependsOn runBoot
+    if (runGameTests != null) dependsOn runGameTests
+}

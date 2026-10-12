@@ -59,10 +59,19 @@ sourceSets.configureEach {
  * Metadata is generated from the values above, so the version ranges in fabric.mod.json,
  * mods.toml and the Modrinth/CurseForge uploads always agree.
  */
-static String neoForgeVersionFor(String mc) {
-    // 1.21.1 -> 21.1, 1.20.2 -> 20.2, 26.1.2 -> 26.1.2
-    def parts = mc.split(/\./)
-    return parts[0] == '1' ? "${parts[1]}.${parts.length > 2 ? parts[2] : '0'}" : mc
+/*
+ * The oldest loader version the jar accepts is the one its production tests install (see
+ * gradle/production.gradle): forge_min, or neoforge_min of the target for the oldest Minecraft version.
+ */
+String minimumLoaderVersion() {
+    if (loader == 'fabric') return ''
+    def target = loader == 'forge' ? (smokeOf ?: project.name) : "${mcMin}-neoforge"
+    def key = "${loader}_min"
+    def props = new Properties()
+    rootProject.file("versions/$target/gradle.properties").withInputStream { props.load(it) }
+    def version = props.getProperty(key)
+    if (version == null) throw new GradleException("versions/$target/gradle.properties has no $key")
+    return version
 }
 
 def metadata = [
@@ -86,7 +95,7 @@ def metadata = [
         fabric_loader  : project.findProperty('fabric_loader_min') ?: '',
         maven_mc_range : mcMin == mcMax ? "[$mcMin]" : "[$mcMin,$mcMax]",
         loader_dep     : loader == 'forge' ? 'forge' : 'neoforge',
-        loader_range   : loader == 'forge' ? '[47,)' : "[${neoForgeVersionFor(mcMin)},)",
+        loader_range   : "[${minimumLoaderVersion()},)",
         // Dependencies: Forge and NeoForge before 20.4 (FancyModLoader 1.x) require `mandatory`; later
         // NeoForge uses `type` and, in development, rejects `mandatory` unless `type` is also present.
         dep_mandatory  : loader == 'forge' || (loader == 'neoforge' && !mcAtLeast('1.20.5')),
@@ -141,7 +150,7 @@ if (isSmoke && runtimeLoader == loader) {
     tasks.matching { it.name == 'runGametest' }.configureEach { dependsOn installTestedJar }
 }
 
-// The GameTests packaged as a mod, for smoke tests on installed servers (gradle/production-smoke.gradle).
+// The GameTests packaged as a mod, for the production tests (gradle/production.gradle).
 tasks.register('testModJar', Jar) {
     description = 'Packages the GameTests as a mod jar.'
     archiveClassifier = 'testmod'

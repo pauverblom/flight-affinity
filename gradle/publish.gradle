@@ -25,14 +25,14 @@ publishMods {
     dryRun = !modrinthToken.isPresent() || !curseforgeToken.isPresent()
 
     modLoaders.add(loader)
-    if (loader == 'fabric') modLoaders.add('quilt')
-    // e.g. NeoForge for the Forge 1.20.1 jar; each has a <mc>-<loader>-<other> smoke test.
+    // e.g. NeoForge for the Forge 1.20.1 jar, Quilt for Fabric jars; each has a <mc>-<loader>-<other> smoke test.
     (project.findProperty('also_runs_on') ?: '').toString().split(' ').findAll().each { modLoaders.add(it) }
 
     modrinth {
         projectId = modrinth_id
         accessToken = modrinthToken
         minecraftVersions.addAll(mcTargets)
+        if (loader == 'fabric') requires('fabric-api')
     }
 
     curseforge {
@@ -42,6 +42,7 @@ publishMods {
         javaVersions.add(JavaVersion.toVersion(java_version))
         client = true
         server = true
+        if (loader == 'fabric') requires('fabric-api')
     }
 }
 
@@ -51,7 +52,7 @@ publishMods {
  */
 tasks.register('checkReleaseJar') {
     group = 'verification'
-    description = 'Checks the release jar contents (metadata, refmap, no test classes).'
+    description = 'Checks the release jar contents (metadata, mixins, translations, data, no test classes).'
     def jarFile = releaseJar.flatMap { it.archiveFile }
     def expectRefmap = loader == 'forge'
     // Loom rewrites the mixin's target names directly in the class when remapping.
@@ -59,6 +60,7 @@ tasks.register('checkReleaseJar') {
     def metadataFile = loader == 'fabric' ? 'fabric.mod.json'
             : (loader == 'neoforge' && mcAtLeast('1.20.5')) ? 'META-INF/neoforge.mods.toml' : 'META-INF/mods.toml'
     def modId = mod_id
+    def expectDataDrivenEnchantment = mcAtLeast('1.21')
     inputs.file(jarFile)
     doLast {
         def zip = new java.util.zip.ZipFile(jarFile.get().asFile)
@@ -76,6 +78,24 @@ tasks.register('checkReleaseJar') {
                 if (mixins != null && !mixins.contains('refmap')) problems << 'mixin config does not reference the refmap'
             } else if (mixins != null && mixins.contains('refmap')) {
                 problems << 'mixin config references a refmap that is not needed'
+            }
+            // Every language must name the enchantment, under the key the game looks up
+            // ("enchantment.<namespace>.<path>", also what the 1.21+ enchantment file refers to).
+            def nameKey = "enchantment.${modId}.flight_affinity".toString()
+            def langs = zip.entries().toList().findAll { it.name ==~ "assets/${modId}/lang/[a-z_]+\\.json" }
+            if (!langs.any { it.name.endsWith('/en_us.json') }) problems << 'missing en_us translations'
+            langs.each {
+                def entries = new groovy.json.JsonSlurper().parseText(text(it.name)) as Map
+                if (!entries[nameKey]) problems << "${it.name} has no '$nameKey'"
+            }
+            if (text("assets/${modId}/icon.png") == null) problems << 'missing icon'
+            def enchantmentFile = text("data/${modId}/enchantment/flight_affinity.json")
+            if (expectDataDrivenEnchantment) {
+                if (enchantmentFile == null) problems << 'missing data-driven enchantment'
+                else if ((new groovy.json.JsonSlurper().parseText(enchantmentFile) as Map).description?.translate != nameKey)
+                    problems << "enchantment description is not '$nameKey'"
+            } else if (enchantmentFile != null) {
+                problems << 'contains a data-driven enchantment, which this Minecraft version cannot load'
             }
             if (expectIntermediary) {
                 def mixin = zip.getEntry('net/baneina/flightaffinity/mixin/PlayerMixin.class')

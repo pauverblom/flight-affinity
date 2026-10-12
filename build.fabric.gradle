@@ -1,4 +1,9 @@
 // Fabric (and Quilt) targets. Minecraft 26.1+ ships unobfuscated, so Loom no longer remaps.
+if (project.findProperty('production_server') == 'true') {
+    // A smoke test on another loader (Quilt) with no development environment: production tests only.
+    apply from: rootProject.file('gradle/production.gradle')
+    return
+}
 def unobfuscated = stonecutter.eval(stonecutter.current.version as String, '>=26.1')
 apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
 apply from: rootProject.file('gradle/common.gradle')
@@ -7,7 +12,8 @@ dependencies {
     minecraft "com.mojang:minecraft:${minecraft}"
     if (unobfuscated) {
         implementation "net.fabricmc:fabric-loader:${fabric_loader}"
-        // The mod itself does not use Fabric API; the GameTest run needs it. Without remapping,
+        // The code does not call Fabric API, but the mod needs it at runtime: its resource loader is
+        // what loads the mod's data (the 1.21+ enchantment, tags) and translations. Without remapping,
         // localRuntime only reaches the main source set, so it goes on the test classpath instead.
         testRuntimeOnly "net.fabricmc.fabric-api:fabric-api:${fabric_api}"
     } else {
@@ -32,4 +38,21 @@ loom {
 
 // The jar users install: remapped to intermediary names on obfuscated versions.
 ext.releaseJar = unobfuscated ? tasks.named('jar') : tasks.named('remapJar')
+// The GameTests as a mod for production servers, remapped like the release jar.
+if (unobfuscated) {
+    ext.productionTestJar = tasks.named('testModJar')
+} else {
+    tasks.named('testModJar', Jar) {
+        archiveClassifier = 'testmod-dev'
+        destinationDirectory = layout.buildDirectory.dir('devlibs')
+    }
+    ext.productionTestJar = tasks.register('remapTestModJar', net.fabricmc.loom.task.RemapJarTask) {
+        description = 'Remaps the GameTests mod jar to intermediary names.'
+        inputFile = tasks.named('testModJar', Jar).flatMap { it.archiveFile }
+        archiveClassifier = 'testmod'
+        classpath.from(sourceSets.test.compileClasspath)
+        addNestedDependencies = false
+    }
+}
 if (!isSmoke) apply from: rootProject.file('gradle/publish.gradle')
+apply from: rootProject.file('gradle/production.gradle')

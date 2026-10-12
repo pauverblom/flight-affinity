@@ -1,6 +1,7 @@
 // NeoForge targets (1.20.2+). NeoForge runs on Mojang names, so the jar is not remapped.
 if (project.findProperty('production_server') == 'true') {
-    apply from: rootProject.file('gradle/production-smoke.gradle')
+    // No development environment (ModDevGradle cannot set up this NeoForge version): production tests only.
+    apply from: rootProject.file('gradle/production.gradle')
     return
 }
 apply plugin: 'net.neoforged.moddev'
@@ -34,4 +35,7 @@ neoForge {
 }
 
 ext.releaseJar = tasks.named('jar')
+// The GameTests as a mod for production servers; NeoForge runs on Mojang names, as compiled.
+ext.productionTestJar = tasks.named('testModJar')
 if (!isSmoke) apply from: rootProject.file('gradle/publish.gradle')
+apply from: rootProject.file('gradle/production.gradle')

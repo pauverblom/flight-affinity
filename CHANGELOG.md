@@ -9,7 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Builds for Minecraft 26.2 and 26.3.
 
 ### Changed
-- The Fabric version no longer requires Fabric API.
 - On Minecraft 1.20.1-1.20.6 the enchantment now uses the same weight and enchanting costs as on 1.21+.
 
 ### Fixed

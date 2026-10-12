@@ -49,29 +49,41 @@ jobs:
       - name: Target kind
         id: kind
         run: |
-          release=$(grep -oP '^smoke_of=\K.*' versions/${{ matrix.target }}/gradle.properties || true)
+          props=versions/${{ matrix.target }}/gradle.properties
+          release=$(grep -oP '^smoke_of=\K.*' "$props" || true)
           if [ -n "$release" ]; then
             echo "smoke=true" >> "$GITHUB_OUTPUT"
             echo "Smoke test of the $release jar" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "smoke=false" >> "$GITHUB_OUTPUT"
           fi
+          # production_server=true: no development environment, only the production tests.
+          if grep -q '^production_server=true' "$props"; then echo "dev=false" >> "$GITHUB_OUTPUT"; else echo "dev=true" >> "$GITHUB_OUTPUT"; fi
 
       - name: Build
         if: steps.kind.outputs.smoke == 'false'
         run: ./gradlew ":${{ matrix.target }}:build" 2>&1 | tee -a gradle.log
 
+      # The GameTests in the development environment, on the newest loader version.
       - name: GameTests
+        if: steps.kind.outputs.dev == 'true'
         run: ./gradlew ":${{ matrix.target }}:runGametest" 2>&1 | tee -a gradle.log
 
       # A target that registers no tests would otherwise pass silently.
       - name: Check that every GameTest ran
+        if: steps.kind.outputs.dev == 'true'
         run: |
           # Every test has a test_instance file (needed from 1.21.5), so their count is the test count.
           expected=$(ls src/test/resources/data/flightaffinity-test/test_instance | wc -l)
           passed=$(grep -o -E 'All [0-9]+ required tests passed' versions/${{ matrix.target }}/run/gametest/logs/latest.log | grep -o -E '[0-9]+' | tail -1)
           echo "GameTests passed: ${passed:-0}, expected at least $expected"
           [ "${passed:-0}" -ge "$expected" ]
+
+      # The release jar on a server installed by the loader's installer, on the oldest loader version
+      # the jar accepts: it must start and register the enchantment, and pass the GameTests where the
+      # loader can run them on an installed server (gradle/production.gradle).
+      - name: Production tests
+        run: ./gradlew ":${{ matrix.target }}:productionTest" 2>&1 | tee -a gradle.log
 
       # Inspects the jar players install (remapped/reobfuscated where needed), not the dev jar.
       - name: Check release jar
@@ -89,22 +101,23 @@ jobs:
           echo "::group::Gradle errors"
           grep -n -A3 -E "error:|What went wrong|FAILED|Exception|Caused by" gradle.log | grep -v -E "^[0-9]+-\s+at |^[0-9]+:\s+at " | head -120 || true
           echo "::endgroup::"
-          log=versions/${{ matrix.target }}/run/gametest/logs/latest.log
-          if [ -f "$log" ]; then
-            echo "::group::Game log errors"
+          dir=versions/${{ matrix.target }}/run
+          for log in $dir/gametest/logs/latest.log $dir/production/logs/latest.log; do
+            [ -f "$log" ] || continue
+            echo "::group::Errors in $log"
             grep -n -E "ERROR|FATAL|Exception|Caused by|failed|Failed|passed|tests" "$log" | grep -v -E "^[0-9]+:\s+at " | head -120 || true
             echo "::endgroup::"
-            echo "::group::Start of game log"
+            echo "::group::Start of $log"
             # Skips the GameTest progress bars, which can fill the log.
             grep -v -E "GameTestServer.*\]: \[[ +x_]*\]$" "$log" | head -n 150
             echo "::endgroup::"
-            echo "::group::End of game log"
+            echo "::group::End of $log"
             grep -v -E "GameTestServer.*\]: \[[ +x_]*\]$" "$log" | tail -n 60
             echo "::endgroup::"
-            echo "::group::First stack trace"
+            echo "::group::First stack trace in $log"
             grep -v -E "server.properties|eula.txt" "$log" | grep -n -m1 -A60 -E "Exception|Error:" || true
             echo "::endgroup::"
-          fi
+          done
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -113,5 +126,7 @@ jobs:
           path: |
             versions/${{ matrix.target }}/build/libs/
             versions/${{ matrix.target }}/run/gametest/logs/
+            versions/${{ matrix.target }}/run/production/logs/
+            versions/${{ matrix.target }}/run/production/*.log
             versions/${{ matrix.target }}/build/gametest-report.xml
           if-no-files-found: ignore

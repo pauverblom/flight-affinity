@@ -53,4 +53,11 @@ tasks.named('jar', Jar) {
 
 // The jar users install: reobfuscated to SRG names.
 ext.releaseJar = tasks.named('reobfJar')
+// The GameTests as a mod for production servers, reobfuscated like the release jar.
+tasks.named('testModJar', Jar) {
+    archiveClassifier = 'testmod-dev'
+    destinationDirectory = layout.buildDirectory.dir('devlibs')
+}
+ext.productionTestJar = obfuscation.reobfuscate(tasks.named('testModJar'), sourceSets.test)
 if (!isSmoke) apply from: rootProject.file('gradle/publish.gradle')
+apply from: rootProject.file('gradle/production.gradle')
