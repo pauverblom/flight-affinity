@@ -1,0 +1,19 @@
+# Temporary: real jar file names of popular multi-version mods, from the Modrinth API.
+name: probe
+on:
+  push:
+    paths: ['.github/workflows/probe.yml']
+jobs:
+  names:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for p in sodium lithium iris appleskin mouse-tweaks jade ferrite-core modernfix cloth-config fabric-api jei xaeros-minimap distanthorizons entityculling clumps architectury-api balm yacl immediatelyfast krypton continuity puzzles-lib controlling searchables badoptimizations bad-packets emi; do
+            echo "=== $p"
+            curl -sS -A "flight-affinity-probe (github.com/pauverblom/flight-affinity)" "https://api.modrinth.com/v2/project/$p/version" \
+              | jq -r '[.[] | select(.game_versions | length > 1)] | .[0:4][] | "\(.files[0].filename)  <=  \(.game_versions | join(","))  [\(.loaders | join(","))]"'
+            echo "--- latest single-version example:"
+            curl -sS -A "flight-affinity-probe (github.com/pauverblom/flight-affinity)" "https://api.modrinth.com/v2/project/$p/version" \
+              | jq -r '.[0:2][] | "\(.files[0].filename)  <=  \(.game_versions | join(","))  [\(.loaders | join(","))]"'
+            sleep 1
+          done
