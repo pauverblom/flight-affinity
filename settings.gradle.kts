@@ -23,8 +23,8 @@ rootProject.name = "flight-affinity"
  *  - release targets build a jar; mc_targets lists the Minecraft versions that jar is published for.
  *  - smoke targets (smoke_of=<release target>) run the GameTests on one other Minecraft version
  *    with that release target's jar installed, so every published version is actually tested.
- * "<minecraft>-<loader>-<other loader>" runs a release target's code on another loader
- * (Forge 1.20.1 on NeoForge 1.20.1).
+ * "<minecraft>-<loader>-<other loader>" runs a release target's jar on another loader it is published
+ * for (also_runs_on), for each of its Minecraft versions: Forge 1.20.1 on NeoForge, Fabric jars on Quilt.
  */
 val targets = file("versions").listFiles()!!
     .filter { File(it, "gradle.properties").isFile }
@@ -41,8 +41,10 @@ for ((target, p) in targetProps) {
     val smokeOf = p.getProperty("smoke_of")
     if (smokeOf == null) {
         val declared = p.getProperty("mc_targets").trim().split(Regex("\\s+"))
+        // Every published Minecraft version, on the jar's loader and on each also_runs_on loader.
+        val otherLoaders = (p.getProperty("also_runs_on") ?: "").split(' ').filter { it.isNotBlank() }
         val expected = declared.filter { it != minecraft }.map { "$it-$loader" } +
-            (p.getProperty("also_runs_on") ?: "").split(' ').filter { it.isNotBlank() }.map { "$minecraft-$loader-$it" }
+            otherLoaders.flatMap { other -> declared.map { "$it-$loader-$other" } }
         for (smoke in expected) {
             if (targetProps[smoke]?.getProperty("smoke_of") != target)
                 problems += "$target publishes for '$smoke' but versions/$smoke/gradle.properties with smoke_of=$target is missing"

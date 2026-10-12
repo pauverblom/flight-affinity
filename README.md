@@ -93,8 +93,8 @@ target make that happen:
 
 `settings.gradle.kts` refuses to build if any version in an `mc_targets` list, or any loader in
 `also_runs_on`, has no smoke target, so a jar cannot be published for a version or loader nobody tested.
-`<mc>-<loader>-<other loader>` targets run a jar on another loader: the Forge 1.20.1 jar on NeoForge 1.20.1,
-and each Fabric jar on Quilt.
+`<mc>-<loader>-<other loader>` targets run a jar on another loader it is published for (`also_runs_on`), on
+each of its Minecraft versions: the Forge 1.20.1 jar on NeoForge 1.20.1, and every Fabric jar on Quilt.
 
 Every target also runs **production tests** (`./gradlew :<target>:productionTest`, `gradle/production.gradle`).
 They install a real server with the loader's own installer, on the **oldest** loader version the jar

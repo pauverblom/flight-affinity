@@ -114,6 +114,15 @@ def fabric_builds(minecraft):
     return {'fabric_api': api, 'fabric_loader': latest, 'required_loader': required_min}, None
 
 
+def quilt_builds(minecraft):
+    games = {v['version'] for v in json.loads(fetch('https://meta.quiltmc.org/v3/versions/game'))}
+    if minecraft not in games:
+        return None, f'Quilt does not support {minecraft} yet'
+    loaders = [v for v in maven_versions('https://maven.quiltmc.org/repository/release/org/quiltmc/quilt-loader/maven-metadata.xml')
+               if re.fullmatch(r'[\d.]+', v)]
+    return {'quilt_loader': max(loaders, key=version_key)}, None
+
+
 def neoforge_builds(minecraft):
     line = neoforge_line(minecraft)
     builds = sorted((v for v in maven_versions('https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml')
@@ -138,8 +147,14 @@ def plan():
             base = [t for t in releases_of_loader if version_key(t[1]) < version_key(minecraft)][-1]
             entry = {'minecraft': minecraft, 'loader': loader, 'release_target': base[0],
                      'smoke_target': f'{minecraft}-{loader}'}
+            # Loaders the jar is also published for need the version too (Quilt for Fabric jars).
+            also = read_props(VERSIONS / base[0] / 'gradle.properties').get('also_runs_on', '').split()
+            entry['also'] = also
             try:
                 builds, missing = (fabric_builds if loader == 'fabric' else neoforge_builds)(minecraft)
+                if builds and 'quilt' in also:
+                    quilt, missing = quilt_builds(minecraft)
+                    builds = {**builds, **quilt} if quilt else None
             except (urllib.error.URLError, KeyError, ValueError) as e:
                 builds, missing = None, f'could not look up {loader} builds: {e}'
             entry['builds'] = builds
@@ -172,6 +187,14 @@ def apply(entry):
     else:
         lines += [f'neoforge={builds["neoforge"]}', f'neoforge_min={builds["neoforge_min"]}']
     (smoke / 'gradle.properties').write_text('\n'.join(lines) + '\n')
+    if 'quilt' in entry['also']:
+        quilt = VERSIONS / f'{minecraft}-{loader}-quilt'
+        quilt.mkdir(exist_ok=True)
+        (quilt / 'gradle.properties').write_text('\n'.join([
+            f'# Smoke test: the {base} jar on a Quilt server with Minecraft {minecraft} (Quilt runs Fabric mods).',
+            f'# Added by the weekly Minecraft version check.',
+            f'smoke_of={base}', f'java_version={base_props["java_version"]}', 'production_server=true', '',
+            f'quilt_loader={builds["quilt_loader"]}', f'fabric_api={builds["fabric_api"]}']) + '\n')
 
 
 def gradle(*tasks):
@@ -183,7 +206,8 @@ def gradle(*tasks):
 
 def test(entry):
     smoke, base = entry['smoke_target'], entry['release_target']
-    return gradle(f':{base}:build', f':{base}:checkReleaseJar', f':{smoke}:runGametest', f':{smoke}:productionTest')
+    others = [f':{smoke}-{other}:productionTest' for other in entry['also']]
+    return gradle(f':{base}:build', f':{base}:checkReleaseJar', f':{smoke}:runGametest', f':{smoke}:productionTest', *others)
 
 
 def git(*args):
@@ -210,8 +234,9 @@ def issue_body(minecraft, entries, repo, default, branch_pushed):
         if e['missing']:
             lines.append(f'- **{name}**: waiting: {e["missing"]}. Checked again every week.')
         elif e['passed']:
-            lines.append(f'- **{name}**: the `{e["release_target"]}` jar works on {minecraft}: GameTests and production '
-                         f'tests pass with {minecraft} added to its `mc_targets` (smoke target `{e["smoke_target"]}`).')
+            also = ''.join(f' and on {other.capitalize()}' for other in e['also'])
+            lines.append(f'- **{name}**: the `{e["release_target"]}` jar works on {minecraft}{also}: GameTests and '
+                         f'production tests pass with {minecraft} added to its `mc_targets` (smoke target `{e["smoke_target"]}`).')
         else:
             lines.append(f'- **{name}**: the `{e["release_target"]}` jar does **not** pass on {minecraft}; it needs a new '
                          f'target (code changes). Failures:\n\n```\n{e["log"]}\n```')
