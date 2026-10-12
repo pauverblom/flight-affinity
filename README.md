@@ -111,7 +111,7 @@ The jar's declared minimum loader versions come from the same properties, so wha
 what was tested. Targets with `production_server=true` (NeoForge 20.2, 20.3 and 20.5, which ModDevGradle
 cannot set up, and the Quilt targets) only run the production tests.
 
-CI (`.github/workflows/build.yml`) runs one job per target. A release target's job:
+CI (`.github/workflows/build.yml`) runs one job per target, in two stages. A release target's job:
 
 1. builds the target,
 2. runs its GameTests and checks that all of them passed (a test server that crashes, or registers
@@ -119,9 +119,13 @@ CI (`.github/workflows/build.yml`) runs one job per target. A release target's j
 3. runs the production tests,
 4. checks the jar players install: correct metadata file, no test classes, mixins remapped
    (Fabric) or a refmap present (Forge), translations for every language, the 1.21+ enchantment file,
-5. does a Modrinth/CurseForge publish dry run.
+5. does a Modrinth/CurseForge publish dry run,
+6. uploads its jars (`exportJars`).
 
-A smoke target's job runs steps 2 and 3 with the release jar.
+Then each smoke target's job downloads its release target's jars and runs steps 2 and 3 with them
+(`-Pprebuilt_jars=<dir>`, see `gradle/release-jars.gradle`): the jars are built once, and the files the smoke
+tests check are the ones the release workflow publishes. Locally, smoke targets build the release target
+themselves. A newer push cancels the CI run of an older one; failed downloads are retried with backoff.
 
 ### Releasing
 
