@@ -19,6 +19,19 @@ final class LegacyFluids {
     @SuppressWarnings("unchecked")
     static void submergeEyes(GameTestHelper helper, Player player) {
         try {
+            //? if forge {
+            /*// Forge and NeoForge track the fluid at the eyes in a field of their own (theirs, so never
+            // remapped), which isEyeInFluid() and the mining speed check read.
+            Field forge = Entity.class.getDeclaredField("forgeFluidTypeOnEyes");
+            forge.setAccessible(true);
+            forge.set(player, net.minecraftforge.common.ForgeMod.WATER_TYPE.get());
+            *///?} else if neoforge {
+            /*// Forge and NeoForge track the fluid at the eyes in a field of their own (theirs, so never
+            // remapped), which isEyeInFluid() and the mining speed check read.
+            Field forge = Entity.class.getDeclaredField("forgeFluidTypeOnEyes");
+            forge.setAccessible(true);
+            forge.set(player, net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value());
+            *///?} else {
             // Entity.fluidOnEyes. Outside development its name is remapped and reflection by name would not
             // follow, so try each Set field and keep the one that makes isEyeInFluid(WATER) true.
             boolean marked = false;
@@ -38,17 +51,7 @@ final class LegacyFluids {
                 set.remove(FluidTags.WATER);
             }
             if (!marked) throw new NoSuchFieldException("Entity.fluidOnEyes");
-
-            // Forge and NeoForge check their own fluid-type field instead (added by them, so never remapped).
-            //? if forge {
-            /*Field forge = Entity.class.getDeclaredField("forgeFluidTypeOnEyes");
-            forge.setAccessible(true);
-            forge.set(player, net.minecraftforge.common.ForgeMod.WATER_TYPE.get());
-            *///?} else if neoforge {
-            /*Field forge = Entity.class.getDeclaredField("forgeFluidTypeOnEyes");
-            forge.setAccessible(true);
-            forge.set(player, net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value());
-            *///?}
+            //?}
         } catch (ReflectiveOperationException e) {
             TestCompat.fail(helper, "could not mark the player's eyes as submerged: " + e);
         }
