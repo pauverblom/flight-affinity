@@ -1,0 +1,60 @@
+name: download-stats
+
+# Once a day: records the Modrinth and CurseForge download totals and redraws the README's download
+# chart and Minecraft version badge (.github/scripts/download_stats.py). The files live on the
+# `stats` branch, so the default branch does not get a commit every day.
+#
+# Run it by hand with "backfill" ticked to also fill in Modrinth's past days from its analytics
+# (uses MODRINTH_TOKEN of the release environment, which needs the analytics scope).
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: Fill in Modrinth's history (needs MODRINTH_TOKEN with the analytics scope)
+        type: boolean
+        default: false
+
+concurrency:
+  group: download-stats
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The token is only needed (and the environment only used) for a backfill.
+    environment: ${{ inputs.backfill && 'release' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check out the stats branch
+        run: |
+          if git ls-remote --exit-code --heads origin stats > /dev/null; then
+            git fetch -q origin stats
+            git worktree add -B stats stats-branch origin/stats
+          else
+            git worktree add --orphan -b stats stats-branch
+          fi
+
+      - name: Record and draw
+        env:
+          MODRINTH_TOKEN: ${{ inputs.backfill && secrets.MODRINTH_TOKEN || '' }}
+        run: python3 .github/scripts/download_stats.py stats-branch ${{ inputs.backfill && '--backfill' || '' }}
+
+      - name: Commit
+        working-directory: stats-branch
+        run: |
+          git add -A
+          if git diff --cached --quiet; then echo "Nothing changed"; exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m "Download statistics $(date -u +%F)"
+          git push -q origin stats

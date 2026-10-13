@@ -181,6 +181,15 @@ enabled under Settings > Notifications ("Participating, @mentions and custom"). 
 open a pull request from the branch (the issue links it), merge it, and run the release workflow:
 only the jars whose range grew are uploaded. Close the issue to stop updates for a version.
 
+## Download statistics
+
+The README's download chart and Minecraft version badge come from the **download-stats** workflow
+(`.github/scripts/download_stats.py`). Once a day it records the Modrinth and CurseForge download totals
+in `downloads.csv` and redraws `downloads.svg` and `minecraft.json`, all on the `stats` branch. Run it by
+hand with *backfill* ticked to fill in Modrinth's past days; this needs `MODRINTH_TOKEN` (release
+environment) to have the analytics scope. CurseForge has no history to fetch: its line starts on the
+first recorded day.
+
 ## Branches
 
 Everything is developed on the default branch. The repository used to have one branch per group of

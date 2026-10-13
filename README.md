@@ -1,5 +1,9 @@
 ![Flight Affinity minecraft update style title](https://cdn.modrinth.com/data/cached_images/52ae93c4465333c7060c8094c4b170b4b539ba62.png)
 
+[![Modrinth downloads](https://img.shields.io/modrinth/dt/flight-affinity?logo=modrinth&label=Modrinth)](https://modrinth.com/mod/flight-affinity)
+[![CurseForge downloads](https://img.shields.io/curseforge/dt/1180063?logo=curseforge&label=CurseForge)](https://www.curseforge.com/projects/1180063)
+[![Minecraft versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpauverblom%2Fflight-affinity%2Fstats%2Fminecraft.json)](https://modrinth.com/mod/flight-affinity/versions)
+
 ## New Enchantment!
 
 Based on the original [Aerial Affinity Mod](https://www.curseforge.com/minecraft/mc-mods/aerial-affinity), this mod adds a helmet enchantment that lets you mine at full speed when you are not standing on the ground.
@@ -33,7 +37,13 @@ Every jar is named `flightaffinity-<loader>-<mod version>+mc<first>-<last>.jar` 
 supports a single Minecraft version). The range is inclusive: `flightaffinity-neoforge-1.3.0+mc1.20.2-1.20.4.jar`
 works on 1.20.2, 1.20.3 and 1.20.4. The Forge 1.20.1 jar also runs on NeoForge 1.20.1.
 
+## Downloads
+
+![Flight Affinity downloads on Modrinth and CurseForge over time](https://raw.githubusercontent.com/pauverblom/flight-affinity/stats/downloads.svg)
+
 ## Contributing
+
+[![Build](https://github.com/pauverblom/flight-affinity/actions/workflows/build.yml/badge.svg)](https://github.com/pauverblom/flight-affinity/actions/workflows/build.yml)
 
 The mod is built for every supported Minecraft version and loader from one source tree; see
 [CONTRIBUTING.md](https://github.com/pauverblom/flight-affinity/blob/main/CONTRIBUTING.md) for how it is organised, tested and released. Bugs and requests go to the
